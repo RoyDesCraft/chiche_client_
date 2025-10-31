@@ -244,6 +244,45 @@ h1, h2, h3, p {
     transform: scale(110%);
 }
 
+/* TABS CONTENT */
+.tab-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 10px 15px;
+    margin-top: 0;
+    margin-left: 0;
+    background-color: #ffffff;
+
+}
+.tab-content .tab {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 15px;
+    margin-top: 0;
+    margin-left: 0;
+    height: 100%;
+    border-radius: 15px;
+    background-color: #2a2733;
+}
+.tab-content .tab-icon {
+    width: 5vh;
+    height: 5vh;
+    object-fit: contain;
+}
+.tab-content .tab-text {
+    font-size: 18px;
+    font-family: "Inter";
+    font-weight: 600;
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+}
+
 .main_content {
     flex: 1;
     padding: 20px;
