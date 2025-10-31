@@ -10,26 +10,22 @@
 </head>
 <body>
     <div class="sidebar" id="sidebar">
-                <a href=""><img class="logo" src='WhiteSquare.png'></img></a>
-                <div class="close-sidebar" style="background-image: url('SidebarIcon.svg');" id="close-sidebar"></div>
-                <a href="#"><img class="lildots" src="DotsIcon.svg"></img></a>
-        <div class="account-section">
-                <img class="profile-picture" src="WhiteSquare.png"></img>
-            <div class="account-info">
-                <h2 class="account-name">Esu</h2>
-                <h2 class="account-username">@esu_xyz</h2>
-                <p><a class="account-setting" href="#">Account settings</a></p>
+        <div class="sidebar-content">
+                    <a href=""><img class="logo" src='WhiteSquare.png'></img></a>
+                    <div class="close-sidebar" style="background-image: url('SidebarIcon.svg');" id="close-sidebar"></div>
+                    <a href="#"><img class="lildots" src="DotsIcon.svg"></img></a>
+            <div class="account-section">
+                    <img class="profile-picture" src="WhiteSquare.png"></img>
+                <div class="account-info">
+                    <h2 class="account-name">Esu</h2>
+                    <h2 class="account-username">@esu_xyz</h2>
+                    <p><a class="account-setting" href="#">Account settings</a></p>
+                </div>
             </div>
-            
+            <div class="divider"></div>
+            <div style="height: 200vh; background: transparent;"></div>
         </div>
-        <div class="divider"></div>
     </div>
-    <script>
-        document.querySelector('.close-sidebar').addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('sidebar-closed');
-        })
-    </script>
 
 </body>
 </html>

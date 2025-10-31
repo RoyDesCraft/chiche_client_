@@ -5,7 +5,29 @@
     --background-grey: #1F1E28;
     --black: #000000;
     --white: #ffffff;
+
+    --scrollbar-width: 20px;
+    --scrollbar-thumb: var(--white);
+    --scrollbar-track: #1F1E28;
+    --scrollbar-radius: 4px; 
 }
+/*
+html {
+    scrollbar-width: normal;
+    scrollbar-color: red, green;
+}
+
+html::-webkit-scrollbar {
+    width: 15px;
+}
+html::-webkit-scrollbar-thumb {
+    background-color: var(--white);
+    border-radius: 50px;
+}
+html::-webkit-scrollbar-track {
+    background-color: var(--background-grey);
+}
+*/
 /* BODY */
 body {
     height: 100vh;
@@ -25,7 +47,7 @@ h1, h2, h3, p {
 .sidebar {
     position: relative;
     width: 20vw;
-    height: 100%;
+    height: 100vh;
     background: var(--background-grey);
     color: var(--white);
     padding: 0;
@@ -33,7 +55,30 @@ h1, h2, h3, p {
     border-top-right-radius: 25px;
     border-bottom-right-radius: 25px;
     transition: all 0.2s ease-out;
+
+    overflow-y: auto;
 }
+.sidebar-content {
+    max-height: 80vh;
+    overflow-y: auto;
+    margin-top: 13vh;
+    margin-right: 1.3vw;
+}
+.sidebar-content::-webkit-scrollbar {
+    width: 8px;
+    top: 5vh;
+}
+.sidebar-content::-webkit-scrollbar-thumb {
+    background-color: var(--white);
+    border-radius: 50px;
+}
+.sidebar-content::-webkit-scrollbar-track {
+    background-color: var(--background-grey);
+}
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background-color: #ffffff67;
+}
+
 .sidebar-closed {
     transform: translateX(-80%);
     transition: all 0.2s ease-out;
@@ -41,7 +86,7 @@ h1, h2, h3, p {
 
 /* TOP */
 .sidebar .logo {
-    position: relative;
+    position: absolute;
     top: 1.3vh;
     left: 1.3vh;
     width: 10vh;
@@ -82,8 +127,8 @@ h1, h2, h3, p {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 4vh;
-    margin-left: 2.6vh;
+    margin-top: 3vh;
+    margin-left: 0.75vw;
 }
 .sidebar .account-info {
     position: relative;
@@ -150,7 +195,7 @@ h1, h2, h3, p {
 .sidebar .lildots {
     position: absolute;
     top: 13vh;
-    right: 1vw;
+    right: 2vw;
     width: 4vh;
     height: 4vh;
     background-size: cover;
