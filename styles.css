@@ -1,0 +1,206 @@
+/* STYLE */
+:root {
+    --grad-background-dark: #161c16;
+    --grad-background-light: #222033;
+    --background-grey: #1F1E28;
+    --black: #000000;
+    --white: #ffffff;
+}
+/* BODY */
+body {
+    height: 100vh;
+    margin: 0%;
+    font-family: "Arial";
+    background: linear-gradient(to bottom, var(--grad-background-light), var(--grad-background-dark));
+    display: flex;
+}
+
+/* RESET H1 / H2 / H3 / p */
+h1, h2, h3, p {
+    margin: 0;
+    line-height: 1;
+}
+
+/* SIDEBAR */
+.sidebar {
+    position: relative;
+    width: 20vw;
+    height: 100%;
+    background: var(--background-grey);
+    color: var(--white);
+    padding: 0;
+    box-sizing: border-box;
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+    transition: all 0.2s ease-out;
+}
+.sidebar-closed {
+    transform: translateX(-80%);
+    transition: all 0.2s ease-out;
+}
+
+/* TOP */
+.sidebar .logo {
+    position: relative;
+    top: 1.3vh;
+    left: 1.3vh;
+    width: 10vh;
+    height: 10vh;
+    border-radius: 50px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 9;   
+}
+.sidebar .close-sidebar {
+    position: absolute;
+    top: 2.8vh;
+    right: 0.5vw;
+    width: 7vh;
+    height: 7vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    z-index: 9;   
+}
+.sidebar .logo:hover {
+    cursor: pointer;
+}
+.sidebar .close-sidebar:hover {
+    transform: scale(110%);
+}
+
+.sidebar a img {
+    text-decoration: none;
+    border: none;
+}
+
+/* ACCOUNT AREA */
+.sidebar .account-section {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4vh;
+    margin-left: 2.6vh;
+}
+.sidebar .account-info {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 100%;
+    width: 60%;
+    gap: 7px;
+}
+.sidebar .profile-picture {
+    width: 5vw;
+    height: 5vw;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 10;
+    flex-shrink: 0;
+}
+.sidebar .account-name {
+    margin-top: 0;
+    padding: 0;
+    font-size: 25px;
+    font-family: "Inter";
+    font-weight: 900;
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+    z-index: 10;
+}
+.sidebar .account-username {
+    position: relative;
+    font-size: 15px;
+    font-family: "Inter";
+    font-weight: 100;
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: 0.1;
+    z-index: 10;
+}
+.sidebar .account-setting {
+    position: relative;
+    font-size: 1vw;
+    font-family: "Inter";
+    font-weight: 200;
+    color: black;
+    background-color: white;
+    border-radius: 50px;
+    padding: 0.2vw 1vw;
+    text-decoration: none;
+    transition: all 0.2;
+    z-index: 10;
+}
+.sidebar .account-setting::after {
+    content: "";
+    position: absolute;
+    left: 5%;
+    bottom: 1.5px;
+    width: 0;
+    height: 2px;
+    background-color: black;
+    transition: width 0.2s;
+}
+.sidebar .lildots {
+    position: absolute;
+    top: 13vh;
+    right: 1vw;
+    width: 4vh;
+    height: 4vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    z-index: 9;   
+}
+.sidebar .divider {
+    position: relative;
+    bottom: -5vh;
+    left: -2.6vh; 
+    content: "";
+    display: block;
+    width: 80%; 
+    height: 5px;
+    background-color: white;
+    border-top-right-radius: 50px;
+    border-bottom-right-radius: 50px;
+}
+
+.sidebar .account-setting:hover {
+    font-weight: 900;
+    cursor: pointer;
+}
+.sidebar .account-setting:hover::after {
+    width: 90%;
+}
+.sidebar .account-username::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0px;
+    width: 0;
+    height: 1.5px;
+    background-color: white;
+    transition: width 0.1s;
+}
+.sidebar .account-username:hover {
+    cursor: pointer;
+}
+.sidebar .account-username:hover::after {
+    width: 100%;
+}
+.sidebar .lildots:hover {
+    transform: scale(110%);
+}
+
+.main_content {
+    flex: 1;
+    padding: 20px;
+
+}
