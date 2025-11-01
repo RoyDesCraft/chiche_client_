@@ -10,6 +10,8 @@
     --scrollbar-thumb: var(--white);
     --scrollbar-track: #1F1E28;
     --scrollbar-radius: 4px; 
+
+    --tab-background : #2a2733;
 }
 /*
 html {
@@ -30,6 +32,7 @@ html::-webkit-scrollbar-track {
 */
 /* BODY */
 body {
+    overflow: hidden;
     height: 100vh;
     margin: 0%;
     font-family: "Arial";
@@ -56,7 +59,6 @@ h1, h2, h3, p {
     border-bottom-right-radius: 25px;
     transition: all 0.2s ease-out;
 
-    overflow-y: auto;
 }
 .sidebar-content {
     max-height: 80vh;
@@ -66,7 +68,7 @@ h1, h2, h3, p {
 }
 .sidebar-content::-webkit-scrollbar {
     width: 8px;
-    top: 5vh;
+    top: 5vh;    
 }
 .sidebar-content::-webkit-scrollbar-thumb {
     background-color: var(--white);
@@ -89,8 +91,8 @@ h1, h2, h3, p {
     position: absolute;
     top: 1.3vh;
     left: 1.3vh;
-    width: 10vh;
-    height: 10vh;
+    width: 3.5vw;
+    height: 3.5vw;
     border-radius: 50px;
     background-size: cover;
     background-position: center;
@@ -127,7 +129,7 @@ h1, h2, h3, p {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 3vh;
+    margin-top: 1vh;
     margin-left: 0.75vw;
 }
 .sidebar .account-info {
@@ -139,6 +141,7 @@ h1, h2, h3, p {
     height: 100%;
     width: 60%;
     gap: 7px;
+    margin-left: 1vh;
 }
 .sidebar .profile-picture {
     width: 5vw;
@@ -146,12 +149,11 @@ h1, h2, h3, p {
     border-radius: 50%;
     object-fit: cover;
     z-index: 10;
-    flex-shrink: 0;
 }
 .sidebar .account-name {
     margin-top: 0;
     padding: 0;
-    font-size: 25px;
+    font-size: 24px;
     font-family: "Inter";
     font-weight: 900;
     color: rgb(255, 255, 255);
@@ -160,7 +162,7 @@ h1, h2, h3, p {
 }
 .sidebar .account-username {
     position: relative;
-    font-size: 15px;
+    font-size: 16px;
     font-family: "Inter";
     font-weight: 100;
     color: rgb(255, 255, 255);
@@ -173,16 +175,16 @@ h1, h2, h3, p {
     position: relative;
     font-size: 1vw;
     font-family: "Inter";
-    font-weight: 200;
+    font-weight: 900;
     color: black;
     background-color: white;
     border-radius: 50px;
-    padding: 0.2vw 1vw;
+    padding: 0.2vw 0.5vw;
     text-decoration: none;
     transition: all 0.2;
     z-index: 10;
 }
-.sidebar .account-setting::after {
+/* .sidebar .account-setting::after {
     content: "";
     position: absolute;
     left: 5%;
@@ -191,7 +193,7 @@ h1, h2, h3, p {
     height: 2px;
     background-color: black;
     transition: width 0.2s;
-}
+} */
 .sidebar .lildots {
     position: absolute;
     top: 13vh;
@@ -218,12 +220,12 @@ h1, h2, h3, p {
 }
 
 .sidebar .account-setting:hover {
-    font-weight: 900;
+    background-color: rgba(255, 255, 255, 0.596);
     cursor: pointer;
 }
-.sidebar .account-setting:hover::after {
+/* .sidebar .account-setting:hover::after {
     width: 90%;
-}
+} */
 .sidebar .account-username::after {
     content: "";
     position: absolute;
@@ -241,8 +243,10 @@ h1, h2, h3, p {
     width: 100%;
 }
 .sidebar .lildots:hover {
-    transform: scale(110%);
+    transform: scale(1.1);
+    cursor: pointer;
 }
+
 
 /* TABS CONTENT */
 .tab-content {
@@ -251,38 +255,77 @@ h1, h2, h3, p {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
-    padding: 10px 15px;
-    margin-top: 0;
-    margin-left: 0;
-    background-color: #ffffff;
-
+    padding: 10px 5px;
+    margin-top: 7.5vh;
+    margin-left: 1vw;
+    overflow: hidden;
 }
 .tab-content .tab {
     position: relative;
     display: flex;
     flex-direction: row;
+    justify-content: flex-start;
     align-items: center;
     gap: 15px;
     padding: 10px 15px;
     margin-top: 0;
-    margin-left: 0;
     height: 100%;
     border-radius: 15px;
-    background-color: #2a2733;
+    transition: all 0.2s ease-out;
+}
+.tab-content .tab:hover {
+    background-color: var(--tab-background);
+    cursor: pointer;
 }
 .tab-content .tab-icon {
     width: 5vh;
     height: 5vh;
     object-fit: contain;
 }
+.tab-content .tab-icon.user-profilepicture {
+    border-radius: 50%;
+}
 .tab-content .tab-text {
     font-size: 18px;
     font-family: "Inter";
     font-weight: 600;
-    color: rgb(255, 255, 255);
+    color: var(--white);
     text-decoration: none;
 }
 
+/* POST BUTTON */
+.post-button {
+    position: absolute;
+    width: 15vw;
+    height: 4.3vw;
+    bottom: 2.5vh;
+    left: 2.5vw;
+    border-radius: 50px;
+    background-color: rgb(255, 255, 255);
+}
+.post-button-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5vw;
+    font-family: "Inter";
+    font-weight: 800;
+    color: rgb(0, 0, 0);
+    text-decoration: none;
+}
+.post-button:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+    transition: transform 0.1s ease-out;
+}
+.post-button-sidebar-closed {
+    transform: translateX(-80%);
+    transition: all 0.2s ease-out;
+}
+
+
+/*MAIN CONTENT */
 .main_content {
     flex: 1;
     padding: 20px;
