@@ -42,3 +42,28 @@ document.querySelector(".close-sidebar").addEventListener("click", () => {
         })
     }
 });
+
+/* LOGIN OVERLAY */
+const loginOverlay = document.getElementById('login-overlay');
+loginOverlay.style.display = 'flex';
+history.pushState(null, '', '/login');
+
+/* GOOGLE SIGN-IN */
+function handleCredentialResponse(response) {
+    console.log("ID Token: " + response.credential);
+    // Envoie le token à ton backend ici
+    // fetch('/auth/google', { method: 'POST', body: JSON.stringify({ token: response.credential }) });
+}
+
+window.onload = function () {
+    google.accounts.id.initialize({
+        client_id: "375435848419-ud1ao7ot13k81uh48gfvk3rbjo47hdce.apps.googleusercontent.com",
+        login_uri: "https://chiche-server.onrender.com/auth/google",
+        callback: handleCredentialResponse,
+        ux_mode: 'popup',
+    });
+    // Associe le bouton Google personnalisé
+    googleLoginButton.onclick = () => {
+        google.accounts.id.prompt();
+    };
+};

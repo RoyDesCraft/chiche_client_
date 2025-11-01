@@ -315,9 +315,6 @@ h1, h2, h3, p {
     font-size: 1.8vw ;
 }
 
-
-
-
 /* POST BUTTON */
 .post-button {
     position: absolute;
@@ -356,5 +353,96 @@ h1, h2, h3, p {
 .main_content {
     flex: 1;
     padding: 20px;
+}
 
+/* SCROLLBAR FOR MAIN CONTENT */
+.main_content::-webkit-scrollbar {
+    width: var(--scrollbar-width);    
+}
+.main_content::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: var(--scrollbar-radius);
+}
+.main_content::-webkit-scrollbar-track {
+    background-color: var(--scrollbar-track);
+}
+.main_content::-webkit-scrollbar-thumb:hover {
+    background-color: #ffffff67;
+}
+
+/* POST TEMPLATE */
+
+
+/* LOGIN PAGE */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.login-box {
+    width: 30vw;
+    height: 65vh;
+    background-color: var(--background-grey);
+    padding: 10px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+.login-title {
+    font-size: 32px;
+    font-family: "Inter";
+    font-weight: 900;
+    color: var(--white);
+}
+.login-subtitle {
+    font-size: 18px;
+    font-family: "Inter";
+    font-weight: 400;
+    color: var(--white);
+    text-align: center;
+}
+.login-button {
+    margin-top: 20px;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-family: "Inter";
+    font-weight: 600;
+    color: var(--black);
+    background-color: var(--white);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    width: 60%;
+    height: 8vh;
+}
+.login-button:hover {
+    background-color: #e0e0e0bc;
+}
+.login-cross-button {
+    align-self: flex-start;
+    padding: 10px;
+    color: var(--white);
+    background-color: transparent;
+    cursor: pointer;
+    width: 4vh;
+    height: 4vh;
+    margin-top: 0;
+    }
+.login-cross-button:hover {
+    transform: scale(1.1);
+}
+.login-logo {
+    position: absolute;
+    width: 8vh;
+    height: 8vh;
+    padding: 0;
 }
