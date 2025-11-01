@@ -30,7 +30,7 @@
                     <h2 class="account-name">Esu</h2>
                     <h2 class="account-username">@esu_xyz</h2>
                     <p>
-                        <a class="account-setting" href="#">Account settings</a>
+                        <a class="account-setting" href="#" id="open-login-overlay-button">Account settings</a>
                     </p>
                 </div>
             </div>
@@ -68,18 +68,38 @@
     </div>
     <div class="main-content" id="main-content">
     </div>
-    <div class="login-overlay" id="login-overlay">
+    <div class="login-overlay login-overlay-closed" id="login-overlay">
         <div class="login-box">
-            <img class="login-cross-button" id="login-cross-button" src="icons/Cross.svg" alt="Close">
+
+            <img class="login-cross-button" id="close-login-overlay-button" src="icons/Cross.svg" alt="Close">
             <img class="login-logo" id="login-logo" src="icons/ChicheLogo.svg" alt="Chiche Logo">
             <h2 class="login-title">Welcome to Chiche</h2>
-            <p class="login-subtitle">Join Chiche today.</p>
-            <button class="login-button" id="login-button">Log in with Esu_xyz</button>
-            <button onclick="google.accounts.id.prompt()" class="login-button" id="google-login-button">
-            <img src="icons/GoogleLogo.png" style="width: 1.5em; margin-right: 8px;">
-            Log in with Esu_xyz
-            </button>        
+            <p class="login-subtitle">Sign up and start voting !</p>
+
+            <div id="customGoogleButton" class="google-login-button">
+                <img src="https://lh3.googleusercontent.com/a/ACg8ocJ6Ej7Qw_0LbN-H3P25nwtaOk3UmAmqG5HiWZeZEWIIS1TL1sw3=s96-c" alt="Google logo" class="google-logo">
+                <span>Se connecter avec Google</span>
+            </div>
+            <div id="g_id_onload"
+                data-client_id="375435848419-ud1ao7ot13k81uh48gfvk3rbjo47hdce.apps.googleusercontent.com"
+                data-login_uri="https://chiche-server.onrender.com/auth/google"
+                data-auto_prompt="false">
+            </div>
+
+
+            <button class="login-button" id="login-button">
+                <h1 class="login-button-text">Sign up for free</h1>
+            </button>
+
+            <h1 class="login-terms-text">
+                By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+            </h1>
+
+            <button class="already-have-account-button">
+                <h1 class="already-have-account-button-text">Already have an account? Log in</h1>
+            </button>
         </div>
     </div>
+
 </body>
 </html>

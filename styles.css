@@ -308,10 +308,10 @@ h1, h2, h3, p {
     transform: translateX(0%);
     transition: all 0.2s ease-out;
 }
-.tab-text-sidebar-closed {
+.tab--sidebar-closed .tab-text {
     font-size: 0px ;
 }
-.tab-text-sidebar-opened {
+.tab-text-sidebar .tab-text {
     font-size: 1.8vw ;
 }
 
@@ -343,7 +343,6 @@ h1, h2, h3, p {
 .post-button-sidebar-closed {
     transform: translateX(-80%);
         transition: transform 0.2s ease-out;
-
 }
 .post-button-sidebar-opened {
     transform: translateX(0%);
@@ -385,6 +384,8 @@ h1, h2, h3, p {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+
+    transition: transform 0.3s ease-out;
 }
 .login-box {
     width: 30vw;
@@ -395,7 +396,7 @@ h1, h2, h3, p {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
 }
 .login-title {
     font-size: 32px;
@@ -410,9 +411,10 @@ h1, h2, h3, p {
     color: var(--white);
     text-align: center;
 }
-.login-button {
+.google-login-button {
+    position: absolute;
     margin-top: 20px;
-    padding: 15px 30px;
+    padding: 15px 0px;
     font-size: 18px;
     font-family: "Inter";
     font-weight: 600;
@@ -423,7 +425,54 @@ h1, h2, h3, p {
     cursor: pointer;
     width: 60%;
     height: 8vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5vw;
+    padding-left: 0.5vw;
+    position: relative;
 }
+.login-button {
+    position: absolute;
+    margin-top: 0px;
+    padding: 15px 0px;
+    font-size: 18px;
+    font-family: "Inter";
+    font-weight: 600;
+    color: var(--black);
+    background-color: var(--white);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    width: 60%;
+    height: 8vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5vw;
+    position: relative;
+}
+.google-login-button img {
+    width: 10vh;
+    height: 10vh;
+    vertical-align: middle;
+    border-radius: 50px;
+}
+.google-login-button:hover {
+    background-color: #e0e0e0bc;
+}
+.login-button h1 {
+    position: absolute;
+    padding: 0;
+    justify-content: center;
+    font-size: 20px;
+    font-family: "Inter";
+    font-weight: 700;
+    color: var(--black);
+}
+
 .login-button:hover {
     background-color: #e0e0e0bc;
 }
@@ -446,3 +495,54 @@ h1, h2, h3, p {
     height: 8vh;
     padding: 0;
 }
+
+
+.login-terms-text {
+    position: absolute;
+    bottom: 2vh;
+    width: 80%;
+    font-size: 12px;
+    font-family: "Inter";
+    font-weight: 400;
+    color: var(--white);
+    text-align: center;
+} 
+
+.login-overlay-open {
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease-out;
+    pointer-events: auto;
+
+}
+.login-overlay-closed {
+    background-color: transparent;
+    transition: all 0.3s ease-out;
+    pointer-events: none;
+}
+
+.login-overlay-open .login-box {
+    transform: translateY(0%);
+    transition: transform 0.2s ease-out;
+}
+.login-overlay-closed .login-box {
+    transform: translateY(-100vh);
+    transition: transform 0.2s ease-out;
+}
+
+.already-have-account-button {
+    position: absolute;
+    bottom: 10vh;
+    font-size: 0.5vw;
+    font-family: "Inter";
+    color: var(--white);
+    font-weight: 400;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+
+    width: 20vw;
+}
+
+
+
