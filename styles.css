@@ -60,11 +60,22 @@ h1, h2, h3, p {
     transition: all 0.2s ease-out;
 
 }
+.sidebar-closed {
+    transform: translateX(-80%);
+    transition: all 0.2s ease-out;
+}
+.sidebar-open {
+    transform: translateX(0%);
+    transition: all 0.2s ease-out;
+}
+
+/* SIDEBAR CONTENT SCROLLBAR */
 .sidebar-content {
     max-height: 80vh;
-    overflow-y: auto;
+    overflow-y: hidden;
+    overflow-x: hidden;
     margin-top: 13vh;
-    margin-right: 1.3vw;
+    margin-right: 0;
 }
 .sidebar-content::-webkit-scrollbar {
     width: 8px;
@@ -75,17 +86,16 @@ h1, h2, h3, p {
     border-radius: 50px;
 }
 .sidebar-content::-webkit-scrollbar-track {
-    background-color: var(--background-grey);
+    background-color: transparent;
 }
 .sidebar-content::-webkit-scrollbar-thumb:hover {
     background-color: #ffffff67;
 }
 
-.sidebar-closed {
-    transform: translateX(-80%);
-    transition: all 0.2s ease-out;
+.scrollbar-sidebar-closed::-webkit-scrollbar{
+    width: 0px;;
+    transition: all 0.7s ease-out;
 }
-
 /* TOP */
 .sidebar .logo {
     position: absolute;
@@ -93,7 +103,6 @@ h1, h2, h3, p {
     left: 1.3vh;
     width: 3.5vw;
     height: 3.5vw;
-    border-radius: 50px;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -218,7 +227,6 @@ h1, h2, h3, p {
     border-top-right-radius: 50px;
     border-bottom-right-radius: 50px;
 }
-
 .sidebar .account-setting:hover {
     background-color: rgba(255, 255, 255, 0.596);
     cursor: pointer;
@@ -247,14 +255,13 @@ h1, h2, h3, p {
     cursor: pointer;
 }
 
-
 /* TABS CONTENT */
 .tab-content {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 1.5vh;
     padding: 10px 5px;
     margin-top: 7.5vh;
     margin-left: 1vw;
@@ -284,6 +291,7 @@ h1, h2, h3, p {
 }
 .tab-content .tab-icon.user-profilepicture {
     border-radius: 50%;
+    object-fit: cover;
 }
 .tab-content .tab-text {
     font-size: 18px;
@@ -292,6 +300,23 @@ h1, h2, h3, p {
     color: var(--white);
     text-decoration: none;
 }
+.tab-sidebar-closed {
+    transform: translateX(76%);
+    transition: all 0.2s ease-out;
+}
+.tab-sidebar-opened {
+    transform: translateX(0%);
+    transition: all 0.2s ease-out;
+}
+.tab-text-sidebar-closed {
+    font-size: 0px ;
+}
+.tab-text-sidebar-opened {
+    font-size: 1.8vw ;
+}
+
+
+
 
 /* POST BUTTON */
 .post-button {
@@ -317,13 +342,15 @@ h1, h2, h3, p {
 .post-button:hover {
     cursor: pointer;
     transform: scale(1.05);
-    transition: transform 0.1s ease-out;
 }
 .post-button-sidebar-closed {
     transform: translateX(-80%);
-    transition: all 0.2s ease-out;
-}
+        transition: transform 0.2s ease-out;
 
+}
+.post-button-sidebar-opened {
+    transform: translateX(0%);
+}
 
 /*MAIN CONTENT */
 .main_content {

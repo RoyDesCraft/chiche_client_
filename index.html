@@ -8,48 +8,62 @@
     <script src="main.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="sidebar" id="sidebar">
-                    <a href=""><img class="logo" src='WhiteSquare.png'></img></a>
-                    <div class="close-sidebar" style="background-image: url('icons/SidebarIcon.svg');" id="close-sidebar"></div>
-                    <a href="#"><img class="lildots" src="icons/DotsIcon.svg"></img></a>
+        <a href="#">
+            <img class="logo" src="icons/ChicheLogoMirror.svg" alt="Logo">
+        </a>
+
+        <div class="close-sidebar" id="close-sidebar" style="background-image: url('icons/SidebarIcon.svg');"></div>
+
+        <a href="#">
+            <img class="lildots" src="icons/DotsIcon.svg" alt="Dots">
+        </a>
+
         <div class="sidebar-content">
             <div class="account-section">
-                    <img class="profile-picture" src="WhiteSquare.png"></img>
+                <img class="profile-picture" src="WhiteSquare.png" alt="Profile Picture">
                 <div class="account-info">
                     <h2 class="account-name">Esu</h2>
                     <h2 class="account-username">@esu_xyz</h2>
-                    <p><a class="account-setting" href="#">Account settings</a></p>
+                    <p>
+                        <a class="account-setting" href="#">Account settings</a>
+                    </p>
                 </div>
             </div>
+
             <div class="divider"></div>
-            <div class="tab-content">
+
+            <div class="tab-content" id="tab-content">
                 <div class="tab">
-                <img class="tab-icon" src="icons/HomeIcon.svg"></img>
-                <h2 class="tab-text">Home</h2>
+                    <img class="tab-icon" src="icons/HomeIcon.svg" alt="Home">
+                    <h2 class="tab-text">Home</h2>
                 </div>
                 <div class="tab">
-                <img class="tab-icon" src="icons/SearchIcon.svg"></img>
-                <h2 class="tab-text">Search</h2>
+                    <img class="tab-icon" src="icons/SearchIcon.svg" alt="Search">
+                    <h2 class="tab-text">Search</h2>
                 </div>
                 <div class="tab">
-                <img class="tab-icon" src="icons/NotifIcon.svg"></img>
-                <h2 class="tab-text">Notifications</h2>            
+                    <img class="tab-icon" src="icons/NotifIcon.svg" alt="Notifications">
+                    <h2 class="tab-text">Notifications</h2>
                 </div>
                 <div class="tab">
-                <img class="tab-icon" src="icons/MessagesIcon.svg"></img>
-                <h2 class="tab-text">Messages</h2>
+                    <img class="tab-icon" src="icons/MessagesIcon.svg" alt="Messages">
+                    <h2 class="tab-text">Messages</h2>
                 </div>
                 <div class="tab">
-                <img class="tab-icon profile-picture" src="WhiteSquare.png"></img>
-                <h2 class="tab-text">Profile</h2>       
+                    <img class="tab-icon profile-picture" src="WhiteSquare.png" alt="Profile">
+                    <h2 class="tab-text">Profile</h2>
                 </div>
                 <div style="height: 20vh; background-color: transparent;"></div>
             </div>
+        </div>
+
+
         <div class="post-button" id="post-button">
             <h2 class="post-button-text">Post</h2>
         </div>
     </div>
-
 </body>
 </html>
