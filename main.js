@@ -1,10 +1,46 @@
+// ==================== CONFIGURATION ====================
+const API_BASE_URL = 'http://localhost:8000'; // Changez selon votre configuration
+
 // ==================== STATE MANAGEMENT ====================
 const state = {
     currentUser: null,
     currentTab: 'home',
     posts: [],
-    isLoggedIn: false
+    isLoggedIn: false,
+    accessToken: null // Nouveau: pour stocker le JWT token
 };
+
+// ==================== AUTH TOKEN MANAGEMENT ====================
+function getAuthHeaders() {
+    if (state.accessToken) {
+        return {
+            'Authorization': `Bearer ${state.accessToken}`,
+            'Content-Type': 'application/json'
+        };
+    }
+    return {
+        'Content-Type': 'application/json'
+    };
+}
+
+function saveAuthToken(token) {
+    state.accessToken = token;
+    sessionStorage.setItem('chicheToken', token);
+}
+
+function loadAuthToken() {
+    const token = sessionStorage.getItem('chicheToken');
+    if (token) {
+        state.accessToken = token;
+        return token;
+    }
+    return null;
+}
+
+function clearAuthToken() {
+    state.accessToken = null;
+    sessionStorage.removeItem('chicheToken');
+}
 
 // ==================== DOM ELEMENTS ====================
 const sidebar = document.getElementById("sidebar");
@@ -54,27 +90,18 @@ function initializeApp() {
 
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
-    // Sidebar toggle
     closeSidebarButton.addEventListener("click", toggleSidebar);
-    
-    // Logo click - scroll to top
     logo.addEventListener('click', () => {
         mainContent.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
-    // Close login overlay
     closeLoginButton.addEventListener('click', closeLoginOverlay);
     loginOverlay.addEventListener('click', (e) => {
         if (e.target === loginOverlay) closeLoginOverlay();
     });
-
-    // Settings button
     openSettingsButton.addEventListener('click', () => {
         switchTab('settings');
         closeLoginOverlay();
     });
-
-    // Logout
     logoutButton.addEventListener('click', handleLogout);
 }
 
@@ -93,7 +120,6 @@ function setupTabNavigation() {
 }
 
 function switchTab(tabName) {
-    // Update active tab
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.add('active');
@@ -101,8 +127,6 @@ function switchTab(tabName) {
             tab.classList.remove('active');
         }
     });
-
-    // Update active page
     tabPages.forEach(page => {
         if (page.id === `${tabName}-page`) {
             page.classList.add('active');
@@ -110,27 +134,19 @@ function switchTab(tabName) {
             page.classList.remove('active');
         }
     });
-
     state.currentTab = tabName;
     mainContent.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ==================== COMPOSER ====================
 function setupComposer() {
-    // Enable/disable post button
     composerTextarea.addEventListener('input', () => {
         const text = composerTextarea.value.trim();
         composerPostButton.disabled = text.length === 0;
-        
-        // Auto-resize
         composerTextarea.style.height = 'auto';
         composerTextarea.style.height = composerTextarea.scrollHeight + 'px';
     });
-
-    // Post button
     composerPostButton.addEventListener('click', handleCreatePost);
-
-    // Keyboard shortcut (Enter to post)
     composerTextarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -146,7 +162,6 @@ function handleCreatePost() {
         openLoginOverlay();
         return;
     }
-
     const text = composerTextarea.value.trim();
     if (text.length === 0) return;
 
@@ -171,7 +186,6 @@ function handleCreatePost() {
     state.posts.unshift(newPost);
     renderPost(newPost, true);
 
-    // Clear form
     composerTextarea.value = '';
     composerTextarea.style.height = 'auto';
     composerPostButton.disabled = true;
@@ -185,10 +199,8 @@ function handleCreatePost() {
 // ==================== POST RENDERING ====================
 function renderPost(post, prepend = false) {
     const postElement = createPostElement(post);
-    
     if (prepend) {
         postsFeed.insertBefore(postElement, postsFeed.firstChild);
-        // Entrance animation
         postElement.style.opacity = '0';
         postElement.style.transform = 'translateY(-20px)';
         setTimeout(() => {
@@ -206,14 +218,12 @@ function createPostElement(post) {
     postDiv.className = 'post-container';
     postDiv.setAttribute('data-post-id', post.id);
 
-    // Create tags HTML
     let tagsHTML = '';
     if (post.tags) {
         const tagArray = [];
         if (post.tags.location) tagArray.push(`<span class="post-tag">📍 ${post.tags.location}</span>`);
         if (post.tags.topic) tagArray.push(`<span class="post-tag">💬 ${post.tags.topic}</span>`);
         if (post.tags.type) tagArray.push(`<span class="post-tag">🏷️ ${post.tags.type}</span>`);
-        
         if (tagArray.length > 0) {
             tagsHTML = `<div class="post-tags">${tagArray.join('')}</div>`;
         }
@@ -252,7 +262,6 @@ function createPostElement(post) {
             </button>
         </div>
     `;
-
     return postDiv;
 }
 
@@ -260,12 +269,10 @@ function createPostElement(post) {
 document.addEventListener('click', (e) => {
     const actionButton = e.target.closest('.post-action');
     if (!actionButton) return;
-
     const action = actionButton.getAttribute('data-action');
     const postContainer = actionButton.closest('.post-container');
     const postId = parseInt(postContainer.getAttribute('data-post-id'));
     const post = state.posts.find(p => p.id === postId);
-
     if (!post) return;
 
     switch (action) {
@@ -289,14 +296,11 @@ function handleLike(button, post) {
         openLoginOverlay();
         return;
     }
-
     const countElement = button.querySelector('.post-action-count');
     post.liked = !post.liked;
     post.likes += post.liked ? 1 : -1;
-
     button.classList.toggle('liked', post.liked);
     countElement.textContent = post.likes;
-
     if (post.liked) {
         button.style.transform = 'scale(1.2)';
         setTimeout(() => {
@@ -310,14 +314,11 @@ function handleRepost(button, post) {
         openLoginOverlay();
         return;
     }
-
     const countElement = button.querySelector('.post-action-count');
     post.reposted = !post.reposted;
     post.reposts += post.reposted ? 1 : -1;
-
     button.classList.toggle('retweeted', post.reposted);
     countElement.textContent = post.reposts;
-
     if (post.reposted) {
         button.style.transform = 'rotate(180deg) scale(1.2)';
         setTimeout(() => {
@@ -350,29 +351,21 @@ function handleShare(post) {
 
 // ==================== AUTHENTICATION ====================
 function setupAuth() {
-    // Switch between login and signup
     showLoginButton.addEventListener('click', () => {
         signupView.classList.add('hidden');
         loginView.classList.remove('hidden');
     });
-
     showSignupButton.addEventListener('click', () => {
         loginView.classList.add('hidden');
         signupView.classList.remove('hidden');
     });
-
-    // Email signup
     document.getElementById('email-signup-button').addEventListener('click', handleEmailSignup);
-    
-    // Email login
     document.getElementById('email-login-button').addEventListener('click', handleEmailLogin);
-
-    // Google login/signup
     document.getElementById('google-signup-button').addEventListener('click', initiateGoogleAuth);
     document.getElementById('google-login-button').addEventListener('click', initiateGoogleAuth);
 }
 
-function handleEmailSignup() {
+async function handleEmailSignup() {
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
     const name = document.getElementById('signup-name').value.trim();
@@ -383,24 +376,46 @@ function handleEmailSignup() {
         return;
     }
 
-    if (password.length < 6) {
-        showToast('Password must be at least 6 characters', 'error');
+    if (password.length < 8) {
+        showToast('Password must be at least 8 characters', 'error');
         return;
     }
 
-    // Simulate account creation
-    const user = {
-        email,
-        name,
-        username: `@${username}`,
-        bio: 'New to Chiche!'
-    };
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/new_account`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password,
+                email: email
+            })
+        });
 
-    loginUser(user);
-    showToast('Account created successfully!', 'success');
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Signup failed');
+        }
+
+        showToast('Account created successfully! Please log in.', 'success');
+        
+        // Auto-login après inscription
+        setTimeout(() => {
+            document.getElementById('login-email').value = email;
+            document.getElementById('login-password').value = password;
+            signupView.classList.add('hidden');
+            loginView.classList.remove('hidden');
+        }, 1000);
+
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
-function handleEmailLogin() {
+async function handleEmailLogin() {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
@@ -409,40 +424,76 @@ function handleEmailLogin() {
         return;
     }
 
-    // Simulate login
-    const user = {
-        email,
-        name: 'Demo User',
-        username: '@demouser',
-        bio: 'Welcome back to Chiche!'
-    };
+    try {
+        // Extraire le username de l'email (avant le @)
+        const username = email.includes('@') ? email.split('@')[0] : email;
 
-    loginUser(user);
-    showToast('Logged in successfully!', 'success');
+        const response = await fetch(`${API_BASE_URL}/users/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Login failed');
+        }
+
+        // Stocker le token
+        saveAuthToken(data.access_token);
+
+        // Créer l'objet utilisateur
+        const user = {
+            email: email,
+            name: username,
+            username: `@${username}`,
+            bio: 'Welcome to Chiche!'
+        };
+
+        loginUser(user);
+        showToast('Logged in successfully!', 'success');
+
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 function initiateGoogleAuth() {
-    // This would trigger the actual Google OAuth flow
-    // For demo purposes, we'll simulate a successful login
-    showToast('Google authentication would happen here', 'success');
-    
-    // Simulate Google login after 1 second
-    setTimeout(() => {
-        const user = {
-            email: 'user@gmail.com',
-            name: 'Google User',
-            username: '@googleuser',
-            bio: 'Signed up with Google'
-        };
-        loginUser(user);
-    }, 1000);
+    showToast('Google authentication: Click the button below', 'success');
 }
 
-// Google Sign-In callback (called by Google's script)
-window.handleGoogleSignIn = function(response) {
-    // Decode the JWT token from Google
+// Google Sign-In callback
+window.handleGoogleSignIn = async function(response) {
     try {
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        const googleToken = response.credential;
+        
+        const res = await fetch(`${API_BASE_URL}/auth/google`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                token: googleToken
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.detail || 'Google sign-in failed');
+        }
+
+        // Stocker le token JWT
+        saveAuthToken(data.access_token);
+
+        // Décoder le token Google pour obtenir les infos utilisateur
+        const payload = JSON.parse(atob(googleToken.split('.')[1]));
         const user = {
             email: payload.email,
             name: payload.name,
@@ -450,9 +501,12 @@ window.handleGoogleSignIn = function(response) {
             bio: 'Signed up with Google',
             picture: payload.picture
         };
+
         loginUser(user);
+        showToast('Logged in with Google successfully!', 'success');
+
     } catch (error) {
-        showToast('Google sign-in failed', 'error');
+        showToast('Google sign-in failed: ' + error.message, 'error');
     }
 };
 
@@ -460,20 +514,18 @@ function loginUser(user) {
     state.currentUser = user;
     state.isLoggedIn = true;
     
-    // Update UI
     document.getElementById('account-name').textContent = user.name;
     document.getElementById('account-username').textContent = user.username;
     document.getElementById('profile-name').textContent = user.name;
     document.getElementById('profile-username-display').textContent = user.username;
     document.getElementById('profile-bio').textContent = user.bio;
     
-    // Update settings
     document.getElementById('settings-name').value = user.name;
     document.getElementById('settings-username').value = user.username.replace('@', '');
     document.getElementById('settings-bio').value = user.bio;
     document.getElementById('settings-email').value = user.email;
 
-    // Save to localStorage
+    // Sauvegarder uniquement les infos utilisateur (pas le token dans localStorage)
     localStorage.setItem('chicheUser', JSON.stringify(user));
 
     closeLoginOverlay();
@@ -482,12 +534,11 @@ function loginUser(user) {
 function handleLogout() {
     state.currentUser = null;
     state.isLoggedIn = false;
+    clearAuthToken();
     
-    // Clear UI
     document.getElementById('account-name').textContent = 'Guest';
     document.getElementById('account-username').textContent = '@guest';
     
-    // Clear localStorage
     localStorage.removeItem('chicheUser');
     
     showToast('Logged out successfully', 'success');
@@ -496,12 +547,16 @@ function handleLogout() {
 
 function checkAuthStatus() {
     const savedUser = localStorage.getItem('chicheUser');
-    if (savedUser) {
+    const savedToken = loadAuthToken();
+    
+    if (savedUser && savedToken) {
         try {
             const user = JSON.parse(savedUser);
             loginUser(user);
         } catch (error) {
             console.error('Failed to restore user session');
+            clearAuthToken();
+            localStorage.removeItem('chicheUser');
         }
     }
 }
@@ -521,7 +576,7 @@ function setupSettings() {
     saveSettingsButton.addEventListener('click', handleSaveSettings);
 }
 
-function handleSaveSettings() {
+async function handleSaveSettings() {
     if (!state.isLoggedIn) {
         showToast('Please log in first', 'error');
         return;
@@ -537,20 +592,17 @@ function handleSaveSettings() {
         return;
     }
 
-    // Update user
     state.currentUser.name = name;
     state.currentUser.username = `@${username}`;
     state.currentUser.bio = bio;
     state.currentUser.email = email;
 
-    // Update UI
     document.getElementById('account-name').textContent = name;
     document.getElementById('account-username').textContent = `@${username}`;
     document.getElementById('profile-name').textContent = name;
     document.getElementById('profile-username-display').textContent = `@${username}`;
     document.getElementById('profile-bio').textContent = bio;
 
-    // Save to localStorage
     localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
 
     showToast('Settings saved successfully!', 'success');
