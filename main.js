@@ -1,5 +1,5 @@
 // ==================== CONFIGURATION ====================
-const API_BASE_URL = 'http://localhost:8000'; // Changez selon votre configuration
+const API_BASE_URL = 'https://chiche-server.onrender.com';
 
 // ==================== STATE MANAGEMENT ====================
 const state = {
@@ -7,7 +7,8 @@ const state = {
     currentTab: 'home',
     posts: [],
     isLoggedIn: false,
-    accessToken: null // Nouveau: pour stocker le JWT token
+    accessToken: null,
+    isGuestMode: false
 };
 
 // ==================== AUTH TOKEN MANAGEMENT ====================
@@ -48,7 +49,6 @@ const closeSidebarButton = document.getElementById("close-sidebar");
 const logo = document.getElementById("logo");
 const mainContent = document.getElementById("main-content");
 
-// Login/Auth
 const loginOverlay = document.getElementById('login-overlay');
 const closeLoginButton = document.getElementById('close-login-overlay-button');
 const signupView = document.getElementById('signup-view');
@@ -56,19 +56,13 @@ const loginView = document.getElementById('login-view');
 const showLoginButton = document.getElementById('show-login');
 const showSignupButton = document.getElementById('show-signup');
 
-// Composer
 const composerTextarea = document.querySelector('.composer-textarea');
 const composerPostButton = document.querySelector('.composer-post-button');
-const locationTag = document.getElementById('location-tag');
-const topicTag = document.getElementById('topic-tag');
-const typeTag = document.getElementById('type-tag');
 const postsFeed = document.getElementById('posts-feed');
 
-// Tabs
 const tabs = document.querySelectorAll('.tab');
 const tabPages = document.querySelectorAll('.tab-page');
 
-// Settings
 const openSettingsButton = document.getElementById('open-settings-button');
 const saveSettingsButton = document.getElementById('save-settings');
 const logoutButton = document.getElementById('logout-button');
@@ -78,14 +72,52 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadSamplePosts();
     checkAuthStatus();
+    createGuestModeToggle();
 });
 
 function initializeApp() {
     setupEventListeners();
     setupTabNavigation();
     setupComposer();
+    setupCustomTagSelectors();
     setupAuth();
     setupSettings();
+}
+
+// ==================== GUEST MODE TOGGLE ====================
+function createGuestModeToggle() {
+    const toggle = document.createElement('div');
+    toggle.className = 'guest-mode-toggle';
+    toggle.innerHTML = `
+        <label class="guest-toggle-label">
+            <input type="checkbox" id="guest-mode-checkbox">
+            <span class="guest-toggle-slider"></span>
+            <span class="guest-toggle-text">Guest Mode</span>
+        </label>
+    `;
+    document.body.appendChild(toggle);
+
+    const checkbox = document.getElementById('guest-mode-checkbox');
+    checkbox.addEventListener('change', toggleGuestMode);
+}
+
+function toggleGuestMode() {
+    const checkbox = document.getElementById('guest-mode-checkbox');
+    state.isGuestMode = checkbox.checked;
+
+    if (state.isGuestMode) {
+        const guestUser = {
+            email: 'guest@chiche.app',
+            name: 'Guest User',
+            username: '@guest',
+            bio: 'Testing in guest mode'
+        };
+        loginUser(guestUser);
+        showToast('Guest mode activated', 'success');
+    } else {
+        handleLogout();
+        showToast('Guest mode deactivated', 'success');
+    }
 }
 
 // ==================== EVENT LISTENERS ====================
@@ -165,6 +197,8 @@ function handleCreatePost() {
     const text = composerTextarea.value.trim();
     if (text.length === 0) return;
 
+    const tags = window.getSelectedTags();
+
     const newPost = {
         id: Date.now(),
         username: state.currentUser?.name || 'User',
@@ -177,9 +211,9 @@ function handleCreatePost() {
         liked: false,
         reposted: false,
         tags: {
-            location: locationTag.value,
-            topic: topicTag.value,
-            type: typeTag.value
+            location: tags.location,
+            topic: tags.topic,
+            type: tags.type
         }
     };
 
@@ -189,9 +223,8 @@ function handleCreatePost() {
     composerTextarea.value = '';
     composerTextarea.style.height = 'auto';
     composerPostButton.disabled = true;
-    locationTag.value = '';
-    topicTag.value = '';
-    typeTag.value = '';
+    
+    window.resetTags();
 
     showToast('Post created successfully!', 'success');
 }
@@ -402,7 +435,6 @@ async function handleEmailSignup() {
 
         showToast('Account created successfully! Please log in.', 'success');
         
-        // Auto-login après inscription
         setTimeout(() => {
             document.getElementById('login-email').value = email;
             document.getElementById('login-password').value = password;
@@ -425,7 +457,6 @@ async function handleEmailLogin() {
     }
 
     try {
-        // Extraire le username de l'email (avant le @)
         const username = email.includes('@') ? email.split('@')[0] : email;
 
         const response = await fetch(`${API_BASE_URL}/users/login`, {
@@ -445,10 +476,8 @@ async function handleEmailLogin() {
             throw new Error(data.detail || 'Login failed');
         }
 
-        // Stocker le token
         saveAuthToken(data.access_token);
 
-        // Créer l'objet utilisateur
         const user = {
             email: email,
             name: username,
@@ -468,7 +497,6 @@ function initiateGoogleAuth() {
     showToast('Google authentication: Click the button below', 'success');
 }
 
-// Google Sign-In callback
 window.handleGoogleSignIn = async function(response) {
     try {
         const googleToken = response.credential;
@@ -489,10 +517,8 @@ window.handleGoogleSignIn = async function(response) {
             throw new Error(data.detail || 'Google sign-in failed');
         }
 
-        // Stocker le token JWT
         saveAuthToken(data.access_token);
 
-        // Décoder le token Google pour obtenir les infos utilisateur
         const payload = JSON.parse(atob(googleToken.split('.')[1]));
         const user = {
             email: payload.email,
@@ -525,8 +551,9 @@ function loginUser(user) {
     document.getElementById('settings-bio').value = user.bio;
     document.getElementById('settings-email').value = user.email;
 
-    // Sauvegarder uniquement les infos utilisateur (pas le token dans localStorage)
-    localStorage.setItem('chicheUser', JSON.stringify(user));
+    if (!state.isGuestMode) {
+        localStorage.setItem('chicheUser', JSON.stringify(user));
+    }
 
     closeLoginOverlay();
 }
@@ -534,12 +561,16 @@ function loginUser(user) {
 function handleLogout() {
     state.currentUser = null;
     state.isLoggedIn = false;
+    state.isGuestMode = false;
     clearAuthToken();
     
     document.getElementById('account-name').textContent = 'Guest';
     document.getElementById('account-username').textContent = '@guest';
     
     localStorage.removeItem('chicheUser');
+    
+    const checkbox = document.getElementById('guest-mode-checkbox');
+    if (checkbox) checkbox.checked = false;
     
     showToast('Logged out successfully', 'success');
     switchTab('home');
@@ -603,7 +634,9 @@ async function handleSaveSettings() {
     document.getElementById('profile-username-display').textContent = `@${username}`;
     document.getElementById('profile-bio').textContent = bio;
 
-    localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
+    if (!state.isGuestMode) {
+        localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
+    }
 
     showToast('Settings saved successfully!', 'success');
 }
@@ -732,4 +765,99 @@ function showToast(message, type = 'success') {
             document.body.removeChild(toast);
         }, 300);
     }, 3000);
+}
+
+// ==================== CUSTOM TAG SELECTORS ====================
+function setupCustomTagSelectors() {
+    const selectedTags = {
+        location: "",
+        topic: "",
+        type: ""
+    };
+
+    const selectorButtons = document.querySelectorAll('.tag-selector-button');
+
+    selectorButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const selectorName = button.dataset.selector;
+            const optionsDiv = document.querySelector(`[data-options="${selectorName}"]`);
+            
+            document.querySelectorAll('.tag-options').forEach(opt => {
+                if (opt !== optionsDiv) {
+                    opt.classList.remove('open');
+                }
+            });
+            document.querySelectorAll('.tag-selector-button').forEach(btn => {
+                if (btn !== button) {
+                    btn.classList.remove('open');
+                }
+            });
+            
+            optionsDiv.classList.toggle('open');
+            button.classList.toggle('open');
+        });
+    });
+
+    document.querySelectorAll('.tag-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = option.dataset.value;
+            const optionsDiv = option.closest('.tag-options');
+            const selectorName = optionsDiv.dataset.options;
+            const button = document.querySelector(`[data-selector="${selectorName}"]`);
+            const selectedValueSpan = button.querySelector('.selected-value');
+            
+            selectedTags[selectorName] = value;
+            
+            if (value === "") {
+                selectedValueSpan.textContent = `Select ${selectorName}...`;
+                button.classList.remove('active');
+            } else {
+                selectedValueSpan.textContent = option.textContent;
+                button.classList.add('active');
+            }
+            
+            optionsDiv.querySelectorAll('.tag-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+            
+            optionsDiv.classList.remove('open');
+            button.classList.remove('open');
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.tag-options').forEach(opt => {
+            opt.classList.remove('open');
+        });
+        document.querySelectorAll('.tag-selector-button').forEach(btn => {
+            btn.classList.remove('open');
+        });
+    });
+
+    window.getSelectedTags = function() {
+        return selectedTags;
+    };
+
+    window.resetTags = function() {
+        selectedTags.location = "";
+        selectedTags.topic = "";
+        selectedTags.type = "";
+        
+        document.querySelectorAll('.tag-selector-button').forEach(btn => {
+            const selectorName = btn.dataset.selector;
+            const selectedValueSpan = btn.querySelector('.selected-value');
+            selectedValueSpan.textContent = `Select ${selectorName}...`;
+            btn.classList.remove('active');
+        });
+        
+        document.querySelectorAll('.tag-option').forEach(opt => {
+            opt.classList.remove('selected');
+            if (opt.classList.contains('no-selection')) {
+                opt.classList.add('selected');
+            }
+        });
+    };
 }

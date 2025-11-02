@@ -80,41 +80,59 @@
                     <div class="profile-picture composer-profile-pic"></div>
                     <textarea class="composer-textarea" placeholder="What's happening?" maxlength="280"></textarea>
                 </div>
-                
-                <!-- Tags Selection -->
+                                
+                                <!-- Tags Selection -->
+                <!-- Tags Selection - REMPLACEZ la section .composer-tags existante par celle-ci -->
                 <div class="composer-tags">
+                    <!-- Location Tag -->
                     <div class="tag-selector">
-                        <label>📍 Location</label>
-                        <select class="tag-select" id="location-tag">
-                            <option value="">No location</option>
-                            <option value="paris">Paris</option>
-                            <option value="london">London</option>
-                            <option value="newyork">New York</option>
-                            <option value="tokyo">Tokyo</option>
-                            <option value="berlin">Berlin</option>
-                        </select>
+                        <label class="tag-selector-label">📍 Location</label>
+                        <button class="tag-selector-button" data-selector="location">
+                            <span class="selected-value">Select location...</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="tag-options" data-options="location">
+                            <div class="tag-option no-selection selected" data-value="">No location</div>
+                            <div class="tag-option" data-value="paris">Paris</div>
+                            <div class="tag-option" data-value="london">London</div>
+                            <div class="tag-option" data-value="newyork">New York</div>
+                            <div class="tag-option" data-value="tokyo">Tokyo</div>
+                            <div class="tag-option" data-value="berlin">Berlin</div>
+                        </div>
                     </div>
+
+                    <!-- Topic Tag -->
                     <div class="tag-selector">
-                        <label>💬 Topic</label>
-                        <select class="tag-select" id="topic-tag">
-                            <option value="">No topic</option>
-                            <option value="tech">Technology</option>
-                            <option value="sports">Sports</option>
-                            <option value="music">Music</option>
-                            <option value="food">Food</option>
-                            <option value="travel">Travel</option>
-                            <option value="news">News</option>
-                        </select>
+                        <label class="tag-selector-label">💬 Topic</label>
+                        <button class="tag-selector-button" data-selector="topic">
+                            <span class="selected-value">Select topic...</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="tag-options" data-options="topic">
+                            <div class="tag-option no-selection selected" data-value="">No topic</div>
+                            <div class="tag-option" data-value="tech">Technology</div>
+                            <div class="tag-option" data-value="sports">Sports</div>
+                            <div class="tag-option" data-value="music">Music</div>
+                            <div class="tag-option" data-value="food">Food</div>
+                            <div class="tag-option" data-value="travel">Travel</div>
+                            <div class="tag-option" data-value="news">News</div>
+                        </div>
                     </div>
+
+                    <!-- Type Tag -->
                     <div class="tag-selector">
-                        <label>🏷️ Type</label>
-                        <select class="tag-select" id="type-tag">
-                            <option value="">No type</option>
-                            <option value="question">Question</option>
-                            <option value="announcement">Announcement</option>
-                            <option value="poll">Poll</option>
-                            <option value="discussion">Discussion</option>
-                        </select>
+                        <label class="tag-selector-label">🏷️ Type</label>
+                        <button class="tag-selector-button" data-selector="type">
+                            <span class="selected-value">Select type...</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="tag-options" data-options="type">
+                            <div class="tag-option no-selection selected" data-value="">No type</div>
+                            <div class="tag-option" data-value="question">Question</div>
+                            <div class="tag-option" data-value="announcement">Announcement</div>
+                            <div class="tag-option" data-value="poll">Poll</div>
+                            <div class="tag-option" data-value="discussion">Discussion</div>
+                        </div>
                     </div>
                 </div>
 
@@ -270,7 +288,7 @@
             
             <!-- SIGNUP VIEW -->
             <div class="auth-view" id="signup-view">
-                <div class="login-logo"></div>
+                <img class="login-logo" src="icons/ChicheLogo.svg" alt="Chiche Logo">
                 <h2 class="login-title">Join Chiche Today</h2>
                 <p class="login-subtitle">Sign up and start sharing!</p>
 
@@ -313,7 +331,7 @@
 
             <!-- LOGIN VIEW -->
             <div class="auth-view hidden" id="login-view">
-                <div class="login-logo"></div>
+                <img class="login-logo" src="icons/ChicheLogo.svg" alt="Chiche Logo">
                 <h2 class="login-title">Welcome Back</h2>
                 <p class="login-subtitle">Log in to continue</p>
 
