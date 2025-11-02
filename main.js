@@ -1195,6 +1195,7 @@ async function handleEmailLogin() {
                 email: email,
                 password: password
             })
+
         });
 
         const data = await response.json();
