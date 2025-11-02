@@ -8,7 +8,10 @@ const state = {
     posts: [],
     isLoggedIn: false,
     accessToken: null,
-    isGuestMode: false
+    isGuestMode: false,
+    currentPostView: null,
+    users: [],
+    searchFilter: 'all'
 };
 
 // ==================== AUTH TOKEN MANAGEMENT ====================
@@ -71,8 +74,11 @@ const logoutButton = document.getElementById('logout-button');
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadSamplePosts();
+    loadSampleUsers();
     checkAuthStatus();
     createGuestModeToggle();
+    handleRouting();
+    window.addEventListener('popstate', handleRouting);
 });
 
 function initializeApp() {
@@ -82,6 +88,8 @@ function initializeApp() {
     setupCustomTagSelectors();
     setupAuth();
     setupSettings();
+    setupProfileTabs();
+    setupSearchFilters();
 }
 
 // ==================== GUEST MODE TOGGLE ====================
@@ -120,11 +128,39 @@ function toggleGuestMode() {
     }
 }
 
+// ==================== ROUTING ====================
+function handleRouting() {
+    const path = window.location.pathname;
+    
+    if (path.startsWith('/post/')) {
+        const postId = parseInt(path.split('/')[2]);
+        showPostDetail(postId);
+    } else if (path.startsWith('/user/')) {
+        const username = path.split('/')[2].replace('@', '');
+        showUserProfile(username);
+    } else if (path === '/home' || path === '/') {
+        switchTab('home');
+    } else if (path === '/search') {
+        switchTab('search');
+    } else if (path === '/notifications') {
+        switchTab('notifications');
+    } else if (path === '/messages') {
+        switchTab('messages');
+    } else if (path === '/profile') {
+        switchTab('profile');
+    } else if (path === '/settings') {
+        switchTab('settings');
+    }
+}
+
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
     closeSidebarButton.addEventListener("click", toggleSidebar);
     logo.addEventListener('click', () => {
-        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+        switchTab('home');
+        if (window.location.protocol !== 'file:') {
+            history.pushState({ tab: 'home' }, '', '/home');
+        }
     });
     closeLoginButton.addEventListener('click', closeLoginOverlay);
     loginOverlay.addEventListener('click', (e) => {
@@ -132,6 +168,9 @@ function setupEventListeners() {
     });
     openSettingsButton.addEventListener('click', () => {
         switchTab('settings');
+        if (window.location.protocol !== 'file:') {
+            history.pushState({ tab: 'settings' }, '', '/settings');
+        }
         closeLoginOverlay();
     });
     logoutButton.addEventListener('click', handleLogout);
@@ -147,11 +186,22 @@ function setupTabNavigation() {
         tab.addEventListener('click', () => {
             const tabName = tab.getAttribute('data-tab');
             switchTab(tabName);
+            if (window.location.protocol !== 'file:') {
+                history.pushState({ tab: tabName }, '', `/${tabName}`);
+            }
         });
     });
 }
 
 function switchTab(tabName) {
+    // Remove any dynamic views
+    const postDetailView = document.getElementById('post-detail-view');
+    const userProfileView = document.getElementById('user-profile-view');
+    if (postDetailView) postDetailView.remove();
+    if (userProfileView) userProfileView.remove();
+    
+    state.currentPostView = null;
+    
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.add('active');
@@ -168,6 +218,179 @@ function switchTab(tabName) {
     });
     state.currentTab = tabName;
     mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== PROFILE TABS ====================
+function setupProfileTabs() {
+    const profileTabs = document.querySelectorAll('.profile-tab');
+    profileTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            profileTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const tabType = tab.dataset.profileTab;
+            updateProfileContent(tabType);
+        });
+    });
+}
+
+function updateProfileContent(tabType) {
+    const postsList = document.getElementById('profile-posts-list');
+    if (!postsList) return;
+    
+    const userPosts = state.posts.filter(p => p.handle === state.currentUser?.username);
+    
+    postsList.innerHTML = '';
+    
+    if (tabType === 'posts') {
+        if (userPosts.length === 0) {
+            postsList.innerHTML = '<div class="empty-state"><h2>No posts yet</h2><p>Start sharing your thoughts!</p></div>';
+        } else {
+            userPosts.forEach(post => {
+                const postElement = createPostElement(post);
+                postsList.appendChild(postElement);
+            });
+        }
+    } else if (tabType === 'reposts') {
+        const reposts = userPosts.filter(p => p.reposted);
+        if (reposts.length === 0) {
+            postsList.innerHTML = '<div class="empty-state"><h2>No reposts yet</h2><p>Repost content you like!</p></div>';
+        } else {
+            reposts.forEach(post => {
+                const postElement = createPostElement(post);
+                postsList.appendChild(postElement);
+            });
+        }
+    } else if (tabType === 'votes') {
+        const votedPosts = state.posts.filter(p => 
+            p.poll && p.poll.options.some(opt => opt.voters.includes(state.currentUser?.username))
+        );
+        if (votedPosts.length === 0) {
+            postsList.innerHTML = '<div class="empty-state"><h2>No votes yet</h2><p>Vote on polls to see them here!</p></div>';
+        } else {
+            votedPosts.forEach(post => {
+                const postElement = createPostElement(post);
+                postsList.appendChild(postElement);
+            });
+        }
+    }
+}
+
+// ==================== SEARCH FILTERS ====================
+function setupSearchFilters() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+    }
+    
+    // Create filter buttons
+    const searchHeader = document.querySelector('.search-header');
+    if (searchHeader) {
+        const filterContainer = document.createElement('div');
+        filterContainer.className = 'search-filters';
+        filterContainer.innerHTML = `
+            <button class="search-filter-btn active" data-filter="all">All</button>
+            <button class="search-filter-btn" data-filter="users">Users</button>
+            <button class="search-filter-btn" data-filter="location">Location</button>
+            <button class="search-filter-btn" data-filter="topic">Topic</button>
+            <button class="search-filter-btn" data-filter="type">Type</button>
+        `;
+        searchHeader.appendChild(filterContainer);
+        
+        const filterBtns = filterContainer.querySelectorAll('.search-filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.searchFilter = btn.dataset.filter;
+                handleSearch({ target: searchInput });
+            });
+        });
+    }
+}
+
+function handleSearch(e) {
+    const query = e.target.value.trim().toLowerCase();
+    const searchResults = document.getElementById('search-results');
+    
+    if (query.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-state">
+                <h2>Search for posts, users, or topics</h2>
+                <p>Find what's happening now</p>
+            </div>
+        `;
+        return;
+    }
+
+    let results = [];
+    
+    if (state.searchFilter === 'all' || state.searchFilter === 'users') {
+        const userResults = state.users.filter(user =>
+            user.name.toLowerCase().includes(query) ||
+            user.username.toLowerCase().includes(query)
+        );
+        
+        if (userResults.length > 0 && state.searchFilter !== 'location' && state.searchFilter !== 'topic' && state.searchFilter !== 'type') {
+            searchResults.innerHTML = '<h3 class="search-section-title">Users</h3>';
+            userResults.forEach(user => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-search-result';
+                userCard.innerHTML = `
+                    <div class="user-result-pic"></div>
+                    <div class="user-result-info">
+                        <div class="user-result-name">${escapeHtml(user.name)}</div>
+                        <div class="user-result-username">${escapeHtml(user.username)}</div>
+                        <div class="user-result-bio">${escapeHtml(user.bio)}</div>
+                    </div>
+                `;
+                userCard.addEventListener('click', () => navigateToProfile(user.username));
+                searchResults.appendChild(userCard);
+            });
+        }
+    }
+    
+    if (state.searchFilter !== 'users') {
+        const postResults = state.posts.filter(post => {
+            if (state.searchFilter === 'all') {
+                return post.text.toLowerCase().includes(query) ||
+                       post.username.toLowerCase().includes(query) ||
+                       post.handle.toLowerCase().includes(query);
+            } else if (state.searchFilter === 'location') {
+                return post.tags?.location?.toLowerCase().includes(query);
+            } else if (state.searchFilter === 'topic') {
+                return post.tags?.topic?.toLowerCase().includes(query);
+            } else if (state.searchFilter === 'type') {
+                return post.tags?.type?.toLowerCase().includes(query);
+            }
+            return false;
+        });
+
+        if (postResults.length === 0 && (state.searchFilter === 'users' ? false : true)) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'empty-state';
+            emptyMsg.innerHTML = `
+                <h2>No results found</h2>
+                <p>Try searching for something else</p>
+            `;
+            searchResults.appendChild(emptyMsg);
+            return;
+        }
+        
+        if (postResults.length > 0) {
+            if (state.searchFilter !== 'all') {
+                const titleDiv = document.createElement('h3');
+                titleDiv.className = 'search-section-title';
+                titleDiv.textContent = 'Posts';
+                searchResults.appendChild(titleDiv);
+            }
+            
+            postResults.forEach(post => {
+                const postElement = createPostElement(post);
+                searchResults.appendChild(postElement);
+            });
+        }
+    }
 }
 
 // ==================== COMPOSER ====================
@@ -187,6 +410,48 @@ function setupComposer() {
             }
         }
     });
+    
+    // Setup poll options visibility
+    document.querySelectorAll('.tag-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            const value = e.target.dataset.value;
+            const parentOptions = e.target.closest('.tag-options');
+            if (parentOptions && parentOptions.dataset.options === 'type') {
+                const pollOptions = document.getElementById('poll-options');
+                if (pollOptions) {
+                    if (value === 'poll') {
+                        pollOptions.style.display = 'block';
+                    } else {
+                        pollOptions.style.display = 'none';
+                    }
+                }
+            }
+        });
+    });
+    
+    // Add poll option button
+    const addPollOptionBtn = document.getElementById('add-poll-option');
+    if (addPollOptionBtn) {
+        addPollOptionBtn.addEventListener('click', addPollOption);
+    }
+}
+
+function addPollOption() {
+    const container = document.getElementById('poll-options-list');
+    const optionCount = container.children.length;
+    
+    if (optionCount >= 4) {
+        showToast('Maximum 4 options allowed', 'error');
+        return;
+    }
+    
+    const optionDiv = document.createElement('div');
+    optionDiv.className = 'poll-option-input-wrapper';
+    optionDiv.innerHTML = `
+        <input type="text" class="poll-option-input" placeholder="Option ${optionCount + 1}" maxlength="50">
+        <button class="remove-poll-option" onclick="this.parentElement.remove()">×</button>
+    `;
+    container.appendChild(optionDiv);
 }
 
 function handleCreatePost() {
@@ -198,7 +463,7 @@ function handleCreatePost() {
     if (text.length === 0) return;
 
     const tags = window.getSelectedTags();
-
+    
     const newPost = {
         id: Date.now(),
         username: state.currentUser?.name || 'User',
@@ -214,8 +479,35 @@ function handleCreatePost() {
             location: tags.location,
             topic: tags.topic,
             type: tags.type
-        }
+        },
+        commentsList: []
     };
+    
+    // Handle poll if type is poll
+    if (tags.type === 'poll') {
+        const pollInputs = document.querySelectorAll('.poll-option-input');
+        const options = [];
+        pollInputs.forEach(input => {
+            const value = input.value.trim();
+            if (value) {
+                options.push({
+                    text: value,
+                    votes: 0,
+                    voters: []
+                });
+            }
+        });
+        
+        if (options.length < 2) {
+            showToast('Poll needs at least 2 options', 'error');
+            return;
+        }
+        
+        newPost.poll = {
+            options: options,
+            totalVotes: 0
+        };
+    }
 
     state.posts.unshift(newPost);
     renderPost(newPost, true);
@@ -223,6 +515,21 @@ function handleCreatePost() {
     composerTextarea.value = '';
     composerTextarea.style.height = 'auto';
     composerPostButton.disabled = true;
+    
+    // Reset poll options
+    const pollOptionsDiv = document.getElementById('poll-options');
+    if (pollOptionsDiv) {
+        pollOptionsDiv.style.display = 'none';
+        const optionsList = document.getElementById('poll-options-list');
+        optionsList.innerHTML = `
+            <div class="poll-option-input-wrapper">
+                <input type="text" class="poll-option-input" placeholder="Option 1" maxlength="50">
+            </div>
+            <div class="poll-option-input-wrapper">
+                <input type="text" class="poll-option-input" placeholder="Option 2" maxlength="50">
+            </div>
+        `;
+    }
     
     window.resetTags();
 
@@ -261,18 +568,54 @@ function createPostElement(post) {
             tagsHTML = `<div class="post-tags">${tagArray.join('')}</div>`;
         }
     }
+    
+    // Poll HTML if it's a poll
+    let pollHTML = '';
+    if (post.poll) {
+        const hasVoted = state.currentUser && post.poll.options.some(opt => 
+            opt.voters.includes(state.currentUser.username)
+        );
+        
+        pollHTML = '<div class="poll-container">';
+        post.poll.options.forEach((option, index) => {
+            const percentage = post.poll.totalVotes > 0 
+                ? Math.round((option.votes / post.poll.totalVotes) * 100) 
+                : 0;
+            
+            if (hasVoted || !state.isLoggedIn) {
+                pollHTML += `
+                    <div class="poll-option-result">
+                        <div class="poll-option-bar" style="width: ${percentage}%"></div>
+                        <div class="poll-option-content">
+                            <span class="poll-option-text">${escapeHtml(option.text)}</span>
+                            <span class="poll-option-percentage">${percentage}%</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                pollHTML += `
+                    <button class="poll-option-button" data-option-index="${index}">
+                        ${escapeHtml(option.text)}
+                    </button>
+                `;
+            }
+        });
+        pollHTML += `<div class="poll-votes-count">${post.poll.totalVotes} vote${post.poll.totalVotes !== 1 ? 's' : ''}</div>`;
+        pollHTML += '</div>';
+    }
 
     postDiv.innerHTML = `
         <div class="post-header">
-            <div class="post-profile-picture"></div>
+            <div class="post-profile-picture" data-username="${escapeHtml(post.handle)}"></div>
             <div class="post-user-info">
-                <div class="post-user-name">${escapeHtml(post.username)}</div>
+                <div class="post-user-name" data-username="${escapeHtml(post.handle)}">${escapeHtml(post.username)}</div>
                 <div class="post-user-username">${escapeHtml(post.handle)}</div>
             </div>
             <span class="post-timestamp">${escapeHtml(post.timestamp)}</span>
         </div>
-        <div class="post-body">
+        <div class="post-body" data-post-id="${post.id}">
             <p class="post-text">${escapeHtml(post.text)}</p>
+            ${pollHTML}
             ${tagsHTML}
         </div>
         <div class="post-actions">
@@ -295,10 +638,207 @@ function createPostElement(post) {
             </button>
         </div>
     `;
+    
+    // Add click event for profile pictures and usernames
+    const profilePic = postDiv.querySelector('.post-profile-picture');
+    const userName = postDiv.querySelector('.post-user-name');
+    
+    profilePic.addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigateToProfile(post.handle);
+    });
+    
+    userName.addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigateToProfile(post.handle);
+    });
+    
+    // Add click event for post body to show detail
+    const postBody = postDiv.querySelector('.post-body');
+    postBody.addEventListener('click', (e) => {
+        if (!e.target.closest('.poll-option-button')) {
+            e.preventDefault();
+            showPostDetail(post.id);
+        }
+    });
+    
+    // Setup poll voting if present
+    if (post.poll) {
+        const pollButtons = postDiv.querySelectorAll('.poll-option-button');
+        pollButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handlePollVote(post.id, parseInt(button.dataset.optionIndex));
+            });
+        });
+    }
+    
     return postDiv;
 }
 
+function handlePollVote(postId, optionIndex) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+    
+    const post = state.posts.find(p => p.id === postId);
+    if (!post || !post.poll) return;
+    
+    // Check if already voted
+    const hasVoted = post.poll.options.some(opt => 
+        opt.voters.includes(state.currentUser.username)
+    );
+    
+    if (hasVoted) {
+        showToast('You have already voted', 'error');
+        return;
+    }
+    
+    // Add vote
+    post.poll.options[optionIndex].votes++;
+    post.poll.options[optionIndex].voters.push(state.currentUser.username);
+    post.poll.totalVotes++;
+    
+    // Re-render the post
+    const postContainer = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postContainer) {
+        const newPostElement = createPostElement(post);
+        postContainer.replaceWith(newPostElement);
+    }
+    
+    showToast('Vote recorded!', 'success');
+}
 
+function navigateToProfile(username) {
+    const cleanUsername = username.replace('@', '');
+    if (window.location.protocol !== 'file:') {
+        history.pushState({ user: cleanUsername }, '', `/user/@${cleanUsername}`);
+    }
+    showUserProfile(cleanUsername);
+}
+
+function showPostDetail(postId) {
+    const post = state.posts.find(p => p.id === postId);
+    if (!post) return;
+    
+    state.currentPostView = postId;
+    if (window.location.protocol !== 'file:') {
+        history.pushState({ post: postId }, '', `/post/${postId}`);
+    }    
+    // Hide all tab pages
+    tabPages.forEach(page => page.classList.remove('active'));
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Create and show post detail view
+    const postDetailContainer = document.createElement('div');
+    postDetailContainer.id = 'post-detail-view';
+    postDetailContainer.className = 'feed-container tab-page active';
+    
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.innerHTML = '← Back';
+    backButton.addEventListener('click', () => {
+        history.back();
+    });
+    
+    const postElement = createPostElement(post);
+    postElement.style.marginBottom = '0';
+    
+    // Show comments section by default
+    const commentsSection = createCommentsSection(post);
+    commentsSection.classList.add('open');
+    commentsSection.style.display = 'block';
+    
+    postDetailContainer.appendChild(backButton);
+    postDetailContainer.appendChild(postElement);
+    postElement.appendChild(commentsSection);
+    
+    const existingDetail = document.getElementById('post-detail-view');
+    if (existingDetail) {
+        existingDetail.remove();
+    }
+    
+    mainContent.appendChild(postDetailContainer);
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showUserProfile(username) {
+    const cleanUsername = username.replace('@', '');
+    const user = state.users.find(u => u.username.replace('@', '') === cleanUsername);
+    
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+    
+    // Hide all tab pages
+    tabPages.forEach(page => page.classList.remove('active'));
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Create user profile view
+    const userProfileContainer = document.createElement('div');
+    userProfileContainer.id = 'user-profile-view';
+    userProfileContainer.className = 'feed-container tab-page active';
+    
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.innerHTML = '← Back';
+    backButton.addEventListener('click', () => {
+        history.back();
+    });
+    
+    const userPosts = state.posts.filter(p => p.handle === user.username);
+    
+    userProfileContainer.innerHTML = `
+        <div class="profile-header">
+            <div class="profile-banner"></div>
+            <div class="profile-info">
+                <div class="profile-picture-large"></div>
+                <div class="profile-details">
+                    <h1 class="profile-name">${escapeHtml(user.name)}</h1>
+                    <p class="profile-username">${escapeHtml(user.username)}</p>
+                    <p class="profile-bio">${escapeHtml(user.bio)}</p>
+                    <div class="profile-stats">
+                        <span><strong>${userPosts.length}</strong> Posts</span>
+                        <span><strong>${user.followers || 0}</strong> Followers</span>
+                        <span><strong>${user.following || 0}</strong> Following</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="profile-content">
+            <div class="profile-posts-list" id="user-profile-posts-list"></div>
+        </div>
+    `;
+    
+    userProfileContainer.insertBefore(backButton, userProfileContainer.firstChild);
+    
+    const existingProfile = document.getElementById('user-profile-view');
+    if (existingProfile) {
+        existingProfile.remove();
+    }
+    
+    mainContent.appendChild(userProfileContainer);
+    
+    // Render user posts
+    const postsList = document.getElementById('user-profile-posts-list');
+    if (userPosts.length === 0) {
+        postsList.innerHTML = `
+            <div class="empty-state">
+                <h2>No posts yet</h2>
+                <p>This user hasn't shared anything</p>
+            </div>
+        `;
+    } else {
+        userPosts.forEach(post => {
+            const postElement = createPostElement(post);
+            postsList.appendChild(postElement);
+        });
+    }
+    
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 // ==================== POST ACTIONS ====================
 document.addEventListener('click', (e) => {
@@ -398,13 +938,19 @@ function createCommentsSection(post) {
     
     const commentsHTML = post.commentsList.map(comment => `
         <div class="comment-item">
-            <div class="comment-profile-pic"></div>
+            <div class="comment-profile-pic" data-username="${escapeHtml(comment.handle || '@user')}"></div>
             <div class="comment-content">
                 <div class="comment-header">
-                    <span class="comment-username">${escapeHtml(comment.username)}</span>
+                    <span class="comment-username" data-username="${escapeHtml(comment.handle || '@user')}">${escapeHtml(comment.username)}</span>
                     <span class="comment-time">${escapeHtml(comment.timestamp)}</span>
                 </div>
                 <p class="comment-text">${escapeHtml(comment.text)}</p>
+                <div class="comment-actions">
+                    <button class="comment-like-btn ${comment.liked ? 'liked' : ''}" data-comment-id="${comment.id}">
+                        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span class="comment-like-count">${comment.likes || 0}</span>
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -422,6 +968,36 @@ function createCommentsSection(post) {
         </div>
     `;
     
+    // Add click events for comment profile pics and usernames
+    section.querySelectorAll('.comment-profile-pic, .comment-username').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const username = el.dataset.username;
+            if (username) {
+                navigateToProfile(username);
+            }
+        });
+    });
+    
+    // Add comment like functionality
+    section.querySelectorAll('.comment-like-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!state.isLoggedIn) {
+                openLoginOverlay();
+                return;
+            }
+            const commentId = parseInt(btn.dataset.commentId);
+            const comment = post.commentsList.find(c => c.id === commentId);
+            if (comment) {
+                comment.liked = !comment.liked;
+                comment.likes = (comment.likes || 0) + (comment.liked ? 1 : -1);
+                btn.classList.toggle('liked', comment.liked);
+                btn.querySelector('.comment-like-count').textContent = comment.likes;
+            }
+        });
+    });
+    
     const input = section.querySelector('.comment-input');
     const sendBtn = section.querySelector('.comment-send-btn');
     
@@ -432,8 +1008,11 @@ function createCommentsSection(post) {
         const newComment = {
             id: Date.now(),
             username: state.currentUser?.name || 'User',
+            handle: state.currentUser?.username || '@user',
             text: text,
-            timestamp: 'Just now'
+            timestamp: 'Just now',
+            likes: 0,
+            liked: false
         };
         
         post.commentsList.push(newComment);
@@ -453,15 +1032,42 @@ function createCommentsSection(post) {
         const commentElement = document.createElement('div');
         commentElement.className = 'comment-item';
         commentElement.innerHTML = `
-            <div class="comment-profile-pic"></div>
+            <div class="comment-profile-pic" data-username="${escapeHtml(newComment.handle)}"></div>
             <div class="comment-content">
                 <div class="comment-header">
-                    <span class="comment-username">${escapeHtml(newComment.username)}</span>
+                    <span class="comment-username" data-username="${escapeHtml(newComment.handle)}">${escapeHtml(newComment.username)}</span>
                     <span class="comment-time">${escapeHtml(newComment.timestamp)}</span>
                 </div>
                 <p class="comment-text">${escapeHtml(newComment.text)}</p>
+                <div class="comment-actions">
+                    <button class="comment-like-btn" data-comment-id="${newComment.id}">
+                        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span class="comment-like-count">0</span>
+                    </button>
+                </div>
             </div>
         `;
+        
+        // Add click events
+        commentElement.querySelectorAll('.comment-profile-pic, .comment-username').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateToProfile(newComment.handle);
+            });
+        });
+        
+        commentElement.querySelector('.comment-like-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!state.isLoggedIn) {
+                openLoginOverlay();
+                return;
+            }
+            newComment.liked = !newComment.liked;
+            newComment.likes = (newComment.likes || 0) + (newComment.liked ? 1 : -1);
+            const btn = e.currentTarget;
+            btn.classList.toggle('liked', newComment.liked);
+            btn.querySelector('.comment-like-count').textContent = newComment.likes;
+        });
         
         commentsList.appendChild(commentElement);
         
@@ -586,7 +1192,7 @@ async function handleEmailLogin() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                username: username,
+                email: email,
                 password: password
             })
         });
@@ -762,50 +1368,6 @@ async function handleSaveSettings() {
     showToast('Settings saved successfully!', 'success');
 }
 
-// ==================== SEARCH ====================
-const searchInput = document.getElementById('search-input');
-const searchResults = document.getElementById('search-results');
-
-if (searchInput) {
-    searchInput.addEventListener('input', handleSearch);
-}
-
-function handleSearch(e) {
-    const query = e.target.value.trim().toLowerCase();
-    
-    if (query.length === 0) {
-        searchResults.innerHTML = `
-            <div class="empty-state">
-                <h2>Search for posts, users, or topics</h2>
-                <p>Find what's happening now</p>
-            </div>
-        `;
-        return;
-    }
-
-    const results = state.posts.filter(post => 
-        post.text.toLowerCase().includes(query) ||
-        post.username.toLowerCase().includes(query) ||
-        post.handle.toLowerCase().includes(query)
-    );
-
-    if (results.length === 0) {
-        searchResults.innerHTML = `
-            <div class="empty-state">
-                <h2>No results found</h2>
-                <p>Try searching for something else</p>
-            </div>
-        `;
-        return;
-    }
-
-    searchResults.innerHTML = '';
-    results.forEach(post => {
-        const postElement = createPostElement(post);
-        searchResults.appendChild(postElement);
-    });
-}
-
 // ==================== SAMPLE DATA ====================
 function loadSamplePosts() {
     const samplePosts = [
@@ -820,7 +1382,8 @@ function loadSamplePosts() {
             comments: 19,
             liked: true,
             reposted: false,
-            tags: { location: 'paris', topic: 'tech', type: 'discussion' }
+            tags: { location: 'paris', topic: 'tech', type: 'discussion' },
+            commentsList: []
         },
         {
             id: 2,
@@ -833,7 +1396,8 @@ function loadSamplePosts() {
             comments: 45,
             liked: false,
             reposted: true,
-            tags: { topic: 'tech', type: 'question' }
+            tags: { topic: 'tech', type: 'question' },
+            commentsList: []
         },
         {
             id: 3,
@@ -846,7 +1410,8 @@ function loadSamplePosts() {
             comments: 32,
             liked: false,
             reposted: false,
-            tags: { location: 'london', topic: 'tech', type: 'announcement' }
+            tags: { location: 'london', topic: 'tech', type: 'announcement' },
+            commentsList: []
         },
         {
             id: 4,
@@ -859,12 +1424,46 @@ function loadSamplePosts() {
             comments: 28,
             liked: false,
             reposted: false,
-            tags: { type: 'discussion' }
+            tags: { type: 'discussion' },
+            commentsList: []
         }
     ];
 
     state.posts = samplePosts;
     samplePosts.forEach(post => renderPost(post));
+}
+
+function loadSampleUsers() {
+    state.users = [
+        {
+            name: 'Sarah Chen',
+            username: '@sarahchen',
+            bio: 'Tech enthusiast | Designer | Coffee addict ☕',
+            followers: 1234,
+            following: 567
+        },
+        {
+            name: 'Alex Rivera',
+            username: '@alexr',
+            bio: 'Developer & UX Designer | Building cool stuff',
+            followers: 892,
+            following: 421
+        },
+        {
+            name: 'Maya Patel',
+            username: '@mayapatel',
+            bio: 'Product Manager | Tech lover | Always learning',
+            followers: 2104,
+            following: 789
+        },
+        {
+            name: 'Jordan Kim',
+            username: '@jordank',
+            bio: 'Freelance Developer | Open Source Contributor',
+            followers: 456,
+            following: 234
+        }
+    ];
 }
 
 // ==================== UTILITIES ====================
@@ -987,6 +1586,10 @@ function setupCustomTagSelectors() {
 function createFeatherExplosion(x, y) {
     const featherCount = 8;
     const colors = ['#004cffff', '#ffdd00ff', '#00ff51ff', '#ff00f2ff'];
+    const images = [
+        'icons/ChicheLogo.svg',
+        'icons/ChicheLogo.svg',      
+    ]
     
     for (let i = 0; i < featherCount; i++) {
         const feather = document.createElement('div');
@@ -996,6 +1599,13 @@ function createFeatherExplosion(x, y) {
         
         // Random color
         feather.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        feather.style.width, feather.style.height = (15 + Math.random() * 10) + 'px';
+
+        const img = images[Math.floor(Math.random() * images.length)];
+        feather.style.backgroundImage = `url(${img})`;
+        feather.style.backgroundSize = 'contain';
+        feather.style.backgroundRepeat = 'no-repeat';
+        feather.style.backgroundPosition = 'center';
         
         // Random angle for explosion
         const angle = (Math.PI * 2 * i) / featherCount;
@@ -1023,5 +1633,3 @@ function createFeatherExplosion(x, y) {
 document.body.addEventListener('click', (e) => {
     createFeatherExplosion(e.clientX, e.clientY);
 });
-
-/* MOUSE TRAIL */

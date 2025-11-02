@@ -81,8 +81,7 @@
                     <textarea class="composer-textarea" placeholder="What's happening?" maxlength="280"></textarea>
                 </div>
                                 
-                                <!-- Tags Selection -->
-                <!-- Tags Selection - REMPLACEZ la section .composer-tags existante par celle-ci -->
+                <!-- Tags Selection -->
                 <div class="composer-tags">
                     <!-- Location Tag -->
                     <div class="tag-selector">
@@ -134,6 +133,20 @@
                             <div class="tag-option" data-value="discussion">Discussion</div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Poll Options (hidden by default) -->
+                <div class="poll-options" id="poll-options" style="display: none;">
+                    <label class="poll-options-label">Poll Options</label>
+                    <div class="poll-options-list" id="poll-options-list">
+                        <div class="poll-option-input-wrapper">
+                            <input type="text" class="poll-option-input" placeholder="Option 1" maxlength="50">
+                        </div>
+                        <div class="poll-option-input-wrapper">
+                            <input type="text" class="poll-option-input" placeholder="Option 2" maxlength="50">
+                        </div>
+                    </div>
+                    <button class="add-poll-option-btn" id="add-poll-option">+ Add option</button>
                 </div>
 
                 <div class="composer-actions">
@@ -213,8 +226,8 @@
             </div>
             <div class="profile-tabs">
                 <button class="profile-tab active" data-profile-tab="posts">Posts</button>
-                <button class="profile-tab" data-profile-tab="likes">Likes</button>
-                <button class="profile-tab" data-profile-tab="media">Media</button>
+                <button class="profile-tab" data-profile-tab="reposts">Reposts</button>
+                <button class="profile-tab" data-profile-tab="votes">Votes</button>
             </div>
             <div class="profile-content">
                 <div class="profile-posts-list" id="profile-posts-list">
@@ -314,7 +327,7 @@
 
                 <div class="auth-form">
                     <input type="email" id="signup-email" placeholder="Email address" required>
-                    <input type="password" id="signup-password" placeholder="Password (min 6 characters)" required minlength="6">
+                    <input type="password" id="signup-password" placeholder="Password (min 8 characters)" required minlength="8">
                     <input type="text" id="signup-name" placeholder="Display name" required>
                     <input type="text" id="signup-username" placeholder="Username" required>
                     <button class="login-button" id="email-signup-button">Create Account</button>
