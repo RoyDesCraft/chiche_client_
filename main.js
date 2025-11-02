@@ -11,7 +11,16 @@ const state = {
     isGuestMode: false,
     currentPostView: null,
     users: [],
-    searchFilter: 'all'
+    searchFilter: 'all',
+    messages: [],
+    conversations: {},
+    notifications: [],
+    unreadMessages: 0,
+    unreadNotifications: 0,
+    currentConversation: null,
+    replyingTo: null,
+    following: [],
+    followers: []
 };
 
 // ==================== AUTH TOKEN MANAGEMENT ====================
@@ -1117,6 +1126,7 @@ function handleShare(post) {
 }
 
 // ==================== AUTHENTICATION ====================
+// ==================== AUTHENTICATION ====================
 function setupAuth() {
     showLoginButton.addEventListener('click', () => {
         signupView.classList.add('hidden');
@@ -1156,8 +1166,7 @@ async function handleEmailSignup() {
             },
             body: JSON.stringify({
                 username: username,
-                password: password,
-                email: email
+                password: password
             })
         });
 
@@ -1167,10 +1176,29 @@ async function handleEmailSignup() {
             throw new Error(data.detail || 'Signup failed');
         }
 
+        // Mettre à jour les données utilisateur avec l'email et le bio
+        const updateResponse = await fetch(`${API_BASE_URL}/update_user_data`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                data: {
+                    bio: 'Welcome to Chiche!',
+                    email: email,
+                    profilePicture: '',
+                    preferences: {
+                        allowMessagesFrom: 'anyone'
+                    }
+                }
+            })
+        });
+
         showToast('Account created successfully! Please log in.', 'success');
         
         setTimeout(() => {
-            document.getElementById('login-email').value = email;
+            document.getElementById('login-email').value = username;
             document.getElementById('login-password').value = password;
             signupView.classList.add('hidden');
             loginView.classList.remove('hidden');
@@ -1182,16 +1210,16 @@ async function handleEmailSignup() {
 }
 
 async function handleEmailLogin() {
-    const email = document.getElementById('login-email').value.trim();
+    const emailOrUsername = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
-    if (!email || !password) {
+    if (!emailOrUsername || !password) {
         showToast('Please fill in all fields', 'error');
         return;
     }
 
     try {
-        const username = email.includes('@') ? email.split('@')[0] : email;
+        const username = emailOrUsername.includes('@') ? emailOrUsername.split('@')[0] : emailOrUsername;
 
         const response = await fetch(`${API_BASE_URL}/users/login`, {
             method: 'POST',
@@ -1199,10 +1227,9 @@ async function handleEmailLogin() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                email: email,
+                username: username,
                 password: password
             })
-
         });
 
         const data = await response.json();
@@ -1213,11 +1240,19 @@ async function handleEmailLogin() {
 
         saveAuthToken(data.access_token);
 
+        // Récupérer les données utilisateur
+        const userDataResponse = await fetch(`${API_BASE_URL}/get_user_data/${username}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const userData = await userDataResponse.json();
+
         const user = {
-            email: email,
-            name: username,
+            email: userData.email || `${username}@chiche.app`,
+            name: userData.name || username,
             username: `@${username}`,
-            bio: 'Welcome to Chiche!'
+            bio: userData.bio || 'Welcome to Chiche!'
         };
 
         loginUser(user);
@@ -1289,6 +1324,12 @@ function loginUser(user) {
     if (!state.isGuestMode) {
         localStorage.setItem('chicheUser', JSON.stringify(user));
     }
+    
+    // Charger followers, following et notifications
+    initializeFollowSystem();
+    loadNotifications();
+    createMessagingFeatures();
+    updateProfileStats();
 
     closeLoginOverlay();
 }
@@ -1358,22 +1399,49 @@ async function handleSaveSettings() {
         return;
     }
 
-    state.currentUser.name = name;
-    state.currentUser.username = `@${username}`;
-    state.currentUser.bio = bio;
-    state.currentUser.email = email;
+    try {
+        const response = await fetch(`${API_BASE_URL}/update_user_data`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                username: username,
+                data: {
+                    bio: bio,
+                    email: email,
+                    profilePicture: '',
+                    preferences: {
+                        allowMessagesFrom: document.getElementById('privacy-messages').checked ? 'anyone' : 'restricted'
+                    }
+                }
+            })
+        });
 
-    document.getElementById('account-name').textContent = name;
-    document.getElementById('account-username').textContent = `@${username}`;
-    document.getElementById('profile-name').textContent = name;
-    document.getElementById('profile-username-display').textContent = `@${username}`;
-    document.getElementById('profile-bio').textContent = bio;
+        const data = await response.json();
 
-    if (!state.isGuestMode) {
-        localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
+        if (!response.ok) {
+            throw new Error(data.detail || 'Failed to update settings');
+        }
+
+        state.currentUser.name = name;
+        state.currentUser.username = `@${username}`;
+        state.currentUser.bio = bio;
+        state.currentUser.email = email;
+
+        document.getElementById('account-name').textContent = name;
+        document.getElementById('account-username').textContent = `@${username}`;
+        document.getElementById('profile-name').textContent = name;
+        document.getElementById('profile-username-display').textContent = `@${username}`;
+        document.getElementById('profile-bio').textContent = bio;
+
+        if (!state.isGuestMode) {
+            localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
+        }
+
+        showToast('Settings saved successfully!', 'success');
+
+    } catch (error) {
+        showToast(error.message, 'error');
     }
-
-    showToast('Settings saved successfully!', 'success');
 }
 
 // ==================== SAMPLE DATA ====================
@@ -1641,3 +1709,922 @@ function createFeatherExplosion(x, y) {
 document.body.addEventListener('click', (e) => {
     createFeatherExplosion(e.clientX, e.clientY);
 });
+
+// ==================== MESSAGING SYSTEM ====================
+function createMessagingFeatures() {
+    // Écouter les nouveaux messages (simulation - à remplacer par WebSocket)
+    setInterval(checkNewMessages, 5000);
+}
+
+async function checkNewMessages() {
+    if (!state.isLoggedIn || state.currentTab === 'messages') return;
+    
+    // Simulation - à remplacer par un vrai appel API
+    // const newMessages = await fetch(`${API_BASE_URL}/messages/unread`);
+}
+
+function openConversation(username) {
+    state.currentConversation = username;
+    const user = state.users.find(u => u.username === username);
+    
+    if (!user) return;
+    
+    // Hide all tab pages
+    tabPages.forEach(page => page.classList.remove('active'));
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Create conversation view
+    const conversationView = document.createElement('div');
+    conversationView.id = 'conversation-view';
+    conversationView.className = 'feed-container tab-page active';
+    
+    conversationView.innerHTML = `
+        <button class="back-button" onclick="history.back()">← Back to Messages</button>
+        <div class="message-conversation">
+            <div class="conversation-header">
+                <div class="conversation-avatar" data-username="${escapeHtml(user.username)}"></div>
+                <div class="conversation-info">
+                    <div class="conversation-name">${escapeHtml(user.name)}</div>
+                    <div class="conversation-username">${escapeHtml(user.username)}</div>
+                </div>
+            </div>
+            <div class="conversation-messages" id="conversation-messages"></div>
+            <div class="conversation-input-area">
+                <div class="reply-indicator" id="reply-indicator">
+                    <span>Replying to <strong id="reply-to-text"></strong></span>
+                    <button class="cancel-reply" onclick="cancelReply()">×</button>
+                </div>
+                <div class="conversation-input-wrapper">
+                    <textarea class="conversation-input" id="message-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button class="send-message-btn" id="send-message-btn">
+                        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existing = document.getElementById('conversation-view');
+    if (existing) existing.remove();
+    
+    mainContent.appendChild(conversationView);
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Load messages
+    loadConversationMessages(username);
+    
+    // Setup input
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-message-btn');
+    
+    messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = messageInput.scrollHeight + 'px';
+        sendBtn.disabled = messageInput.value.trim().length === 0;
+    });
+    
+    sendBtn.addEventListener('click', () => sendMessage(username));
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!sendBtn.disabled) sendMessage(username);
+        }
+    });
+    
+    // Mark messages as read
+    markMessagesAsRead(username);
+}
+
+function loadConversationMessages(username) {
+    const messagesContainer = document.getElementById('conversation-messages');
+    if (!messagesContainer) return;
+    
+    if (!state.conversations[username]) {
+        state.conversations[username] = [];
+    }
+    
+    const messages = state.conversations[username];
+    
+    if (messages.length === 0) {
+        messagesContainer.innerHTML = `
+            <div class="empty-state">
+                <h2>No messages yet</h2>
+                <p>Start the conversation!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    messagesContainer.innerHTML = '';
+    messages.forEach(msg => {
+        const messageEl = createMessageBubble(msg);
+        messagesContainer.appendChild(messageEl);
+    });
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function createMessageBubble(message) {
+    const bubble = document.createElement('div');
+    const isSent = message.from === state.currentUser?.username;
+    bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}${message.replyTo ? ' reply' : ''}`;
+    bubble.dataset.messageId = message.id;
+    
+    let replyHTML = '';
+    if (message.replyTo) {
+        replyHTML = `
+            <div class="message-reply-to">
+                <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: currentColor;">
+                    <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
+                </svg>
+                ${escapeHtml(message.replyTo.text.substring(0, 30))}${message.replyTo.text.length > 30 ? '...' : ''}
+            </div>
+        `;
+    }
+    
+    bubble.innerHTML = `
+        ${replyHTML}
+        <div class="message-text">${escapeHtml(message.text)}</div>
+        <div class="message-time">${escapeHtml(message.timestamp)}</div>
+        <div class="message-actions">
+            <button class="message-action-btn" onclick="replyToMessage(${message.id})" title="Reply">
+                <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+            </button>
+        </div>
+    `;
+    
+    return bubble;
+}
+
+function sendMessage(toUsername) {
+    const input = document.getElementById('message-input');
+    const text = input.value.trim();
+    
+    if (text.length === 0) return;
+    
+    const message = {
+        id: Date.now(),
+        from: state.currentUser.username,
+        to: toUsername,
+        text: text,
+        timestamp: 'Just now',
+        read: false,
+        replyTo: state.replyingTo
+    };
+    
+    if (!state.conversations[toUsername]) {
+        state.conversations[toUsername] = [];
+    }
+    
+    state.conversations[toUsername].push(message);
+    
+    const messagesContainer = document.getElementById('conversation-messages');
+    const messageEl = createMessageBubble(message);
+    messagesContainer.appendChild(messageEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    input.value = '';
+    input.style.height = 'auto';
+    
+    if (state.replyingTo) {
+        cancelReply();
+    }
+    
+    // Simulate receiving a reply (for demo)
+    setTimeout(() => simulateReply(toUsername), 2000);
+}
+
+function simulateReply(fromUsername) {
+    const user = state.users.find(u => u.username === fromUsername);
+    if (!user) return;
+    
+    const reply = {
+        id: Date.now(),
+        from: fromUsername,
+        to: state.currentUser.username,
+        text: "Thanks for your message! 👋",
+        timestamp: 'Just now',
+        read: false
+    };
+    
+    if (!state.conversations[fromUsername]) {
+        state.conversations[fromUsername] = [];
+    }
+    
+    state.conversations[fromUsername].push(reply);
+    
+    if (state.currentConversation === fromUsername) {
+        const messagesContainer = document.getElementById('conversation-messages');
+        if (messagesContainer) {
+            const messageEl = createMessageBubble(reply);
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    } else {
+        // Show notification
+        showMessageNotification(user, reply.text);
+        state.unreadMessages++;
+        updateMessagesBadge();
+    }
+}
+
+function replyToMessage(messageId) {
+    const username = state.currentConversation;
+    const message = state.conversations[username].find(m => m.id === messageId);
+    
+    if (!message) return;
+    
+    state.replyingTo = message;
+    
+    const replyIndicator = document.getElementById('reply-indicator');
+    const replyText = document.getElementById('reply-to-text');
+    
+    replyText.textContent = message.text.substring(0, 50) + (message.text.length > 50 ? '...' : '');
+    replyIndicator.classList.add('active');
+    
+    document.getElementById('message-input').focus();
+}
+
+window.cancelReply = function() {
+    state.replyingTo = null;
+    document.getElementById('reply-indicator').classList.remove('active');
+};
+
+function markMessagesAsRead(username) {
+    if (state.conversations[username]) {
+        state.conversations[username].forEach(msg => {
+            if (msg.from === username) {
+                msg.read = true;
+            }
+        });
+    }
+    
+    recalculateUnreadMessages();
+    updateMessagesBadge();
+}
+
+function recalculateUnreadMessages() {
+    let count = 0;
+    Object.values(state.conversations).forEach(conversation => {
+        conversation.forEach(msg => {
+            if (msg.to === state.currentUser?.username && !msg.read) {
+                count++;
+            }
+        });
+    });
+    state.unreadMessages = count;
+}
+
+function updateMessagesBadge() {
+    const messagesTab = document.querySelector('[data-tab="messages"]');
+    let badge = messagesTab.querySelector('.tab-badge');
+    
+    if (state.unreadMessages > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'tab-badge';
+            messagesTab.appendChild(badge);
+        }
+        badge.textContent = state.unreadMessages > 99 ? '99+' : state.unreadMessages;
+    } else {
+        if (badge) badge.remove();
+    }
+}
+
+function showMessageNotification(user, text) {
+    const notification = document.createElement('div');
+    notification.className = 'message-notification-toast';
+    
+    notification.innerHTML = `
+        <div class="message-notif-header">
+            <div class="message-notif-avatar"></div>
+            <div class="message-notif-info">
+                <div class="message-notif-name">${escapeHtml(user.name)}</div>
+                <div class="message-notif-username">${escapeHtml(user.username)}</div>
+            </div>
+        </div>
+        <div class="message-notif-text">${escapeHtml(text)}</div>
+    `;
+    
+    notification.addEventListener('click', () => {
+        notification.remove();
+        switchTab('messages');
+        setTimeout(() => openConversation(user.username), 100);
+    });
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// ==================== FOLLOW SYSTEM ====================
+function initializeFollowSystem() {
+    // Charger les followers et following depuis localStorage ou API
+    if (state.isLoggedIn) {
+        state.following = JSON.parse(localStorage.getItem(`following_${state.currentUser.username}`) || '[]');
+        state.followers = JSON.parse(localStorage.getItem(`followers_${state.currentUser.username}`) || '[]');
+    }
+}
+
+function toggleFollow(username) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+    
+    const index = state.following.indexOf(username);
+    
+    if (index > -1) {
+        // Unfollow
+        state.following.splice(index, 1);
+        showToast(`Unfollowed ${username}`, 'success');
+        
+        // Remove from their followers
+        const theirFollowers = JSON.parse(localStorage.getItem(`followers_${username}`) || '[]');
+        const followerIndex = theirFollowers.indexOf(state.currentUser.username);
+        if (followerIndex > -1) {
+            theirFollowers.splice(followerIndex, 1);
+            localStorage.setItem(`followers_${username}`, JSON.stringify(theirFollowers));
+        }
+    } else {
+        // Follow
+        state.following.push(username);
+        showToast(`Following ${username}`, 'success');
+        
+        // Add to their followers
+        const theirFollowers = JSON.parse(localStorage.getItem(`followers_${username}`) || '[]');
+        if (!theirFollowers.includes(state.currentUser.username)) {
+            theirFollowers.push(state.currentUser.username);
+            localStorage.setItem(`followers_${username}`, JSON.stringify(theirFollowers));
+            
+            // Create notification for them
+            createNotification(username, 'follow', `${state.currentUser.name} started following you`);
+        }
+    }
+    
+    localStorage.setItem(`following_${state.currentUser.username}`, JSON.stringify(state.following));
+    
+    // Update UI
+    updateFollowButtons();
+    updateProfileStats();
+}
+
+function updateFollowButtons() {
+    document.querySelectorAll('.follow-user-button').forEach(btn => {
+        const username = btn.dataset.username;
+        const isFollowing = state.following.includes(username);
+        
+        btn.classList.toggle('following', isFollowing);
+        btn.innerHTML = isFollowing 
+            ? '<span>Following</span>' 
+            : '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Follow</span>';
+    });
+}
+
+function updateProfileStats() {
+    const followingCount = state.following.length;
+    const followersCount = state.followers.length;
+    
+    document.querySelector('.profile-stats').innerHTML = `
+        <span><strong>${state.posts.filter(p => p.handle === state.currentUser?.username).length}</strong> Posts</span>
+        <span class="profile-stat-clickable" onclick="showFollowersList('followers')"><strong>${followersCount}</strong> Followers</span>
+        <span class="profile-stat-clickable" onclick="showFollowersList('following')"><strong>${followingCount}</strong> Following</span>
+    `;
+}
+
+function showFollowersList(type) {
+    if (!state.isLoggedIn) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'followers-modal open';
+    modal.id = 'followers-modal';
+    
+    const list = type === 'followers' ? state.followers : state.following;
+    const title = type === 'followers' ? 'Followers' : 'Following';
+    
+    let listHTML = '';
+    if (list.length === 0) {
+        listHTML = `<div class="empty-state"><p>No ${type} yet</p></div>`;
+    } else {
+        list.forEach(username => {
+            const user = state.users.find(u => u.username === username);
+            if (user) {
+                listHTML += `
+                    <div class="follower-item" onclick="navigateToProfile('${escapeHtml(user.username)}'); closeFollowersModal()">
+                        <div class="follower-avatar"></div>
+                        <div class="follower-info">
+                            <div class="follower-name">${escapeHtml(user.name)}</div>
+                            <div class="follower-username">${escapeHtml(user.username)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    modal.innerHTML = `
+        <div class="followers-box">
+            <div class="followers-header">
+                <h2 class="followers-title">${title}</h2>
+                <button class="close-followers-btn" onclick="closeFollowersModal()">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="followers-list">
+                ${listHTML}
+            </div>
+        </div>
+    `;
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeFollowersModal();
+    });
+    
+    document.body.appendChild(modal);
+}
+
+window.closeFollowersModal = function() {
+    const modal = document.getElementById('followers-modal');
+    if (modal) {
+        modal.classList.remove('open');
+        setTimeout(() => modal.remove(), 300);
+    }
+};
+
+// ==================== NOTIFICATIONS SYSTEM ====================
+function createNotification(forUsername, type, message, relatedData = null) {
+    const notification = {
+        id: Date.now(),
+        type: type, // 'follow', 'like', 'comment', 'repost'
+        message: message,
+        timestamp: 'Just now',
+        read: false,
+        relatedData: relatedData,
+        from: state.currentUser?.username
+    };
+    
+    // Save to that user's notifications (simulation - would be API call)
+    let userNotifications = JSON.parse(localStorage.getItem(`notifications_${forUsername}`) || '[]');
+    userNotifications.unshift(notification);
+    localStorage.setItem(`notifications_${forUsername}`, JSON.stringify(userNotifications));
+    
+    // If it's for current user, update state
+    if (forUsername === state.currentUser?.username) {
+        state.notifications.unshift(notification);
+        state.unreadNotifications++;
+        updateNotificationsBadge();
+        renderNotifications();
+    }
+}
+
+function loadNotifications() {
+    if (!state.isLoggedIn) return;
+    
+    const notifications = JSON.parse(localStorage.getItem(`notifications_${state.currentUser.username}`) || '[]');
+    state.notifications = notifications;
+    
+    state.unreadNotifications = notifications.filter(n => !n.read).length;
+    updateNotificationsBadge();
+    renderNotifications();
+}
+
+function renderNotifications() {
+    const notificationsList = document.getElementById('notifications-list');
+    if (!notificationsList) return;
+    
+    if (state.notifications.length === 0) {
+        notificationsList.innerHTML = `
+            <div class="empty-state">
+                <h2>No notifications yet</h2>
+                <p>When someone likes or comments on your posts, you'll see it here</p>
+            </div>
+        `;
+        return;
+    }
+    
+    notificationsList.innerHTML = '';
+    state.notifications.forEach(notif => {
+        const notifElement = createNotificationElement(notif);
+        notificationsList.appendChild(notifElement);
+    });
+}
+
+function createNotificationElement(notif) {
+    const notifDiv = document.createElement('div');
+    notifDiv.className = `notification-item${notif.read ? '' : ' unread'}`;
+    notifDiv.dataset.notifId = notif.id;
+    
+    let iconPath = '';
+    switch(notif.type) {
+        case 'like':
+            iconPath = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+            break;
+        case 'comment':
+            iconPath = 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z';
+            break;
+        case 'repost':
+            iconPath = 'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z';
+            break;
+        case 'follow':
+            iconPath = 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z';
+            break;
+    }
+    
+    notifDiv.innerHTML = `
+        <div class="notification-icon">
+            <svg viewBox="0 0 24 24"><path d="${iconPath}"/></svg>
+        </div>
+        <div class="notification-content">
+            <div class="notification-text">${escapeHtml(notif.message)}</div>
+            <div class="notification-time">${escapeHtml(notif.timestamp)}</div>
+        </div>
+        ${!notif.read ? '<button class="mark-read-btn" onclick="markNotificationRead(' + notif.id + ')">Mark as read</button>' : ''}
+    `;
+    
+    if (notif.relatedData?.postId) {
+        notifDiv.style.cursor = 'pointer';
+        notifDiv.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('mark-read-btn')) {
+                showPostDetail(notif.relatedData.postId);
+                markNotificationRead(notif.id);
+            }
+        });
+    }
+    
+    return notifDiv;
+}
+
+window.markNotificationRead = function(notifId) {
+    const notif = state.notifications.find(n => n.id === notifId);
+    if (notif && !notif.read) {
+        notif.read = true;
+        state.unreadNotifications--;
+        
+        localStorage.setItem(`notifications_${state.currentUser.username}`, JSON.stringify(state.notifications));
+        updateNotificationsBadge();
+        renderNotifications();
+    }
+};
+
+function updateNotificationsBadge() {
+    const notificationsTab = document.querySelector('[data-tab="notifications"]');
+    let badge = notificationsTab.querySelector('.tab-badge');
+    
+    if (state.unreadNotifications > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'tab-badge';
+            notificationsTab.appendChild(badge);
+        }
+        badge.textContent = state.unreadNotifications > 99 ? '99+' : state.unreadNotifications;
+    } else {
+        if (badge) badge.remove();
+    }
+}
+
+function markAllNotificationsRead() {
+    if (state.currentTab === 'notifications') {
+        state.notifications.forEach(n => n.read = true);
+        state.unreadNotifications = 0;
+        localStorage.setItem(`notifications_${state.currentUser.username}`, JSON.stringify(state.notifications));
+        updateNotificationsBadge();
+        renderNotifications();
+    }
+}
+
+// ==================== UPDATE EXISTING FUNCTIONS ====================
+
+// Modifier handleLike pour créer une notification
+function handleLike(button, post) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+    const countElement = button.querySelector('.post-action-count');
+    post.liked = !post.liked;
+    post.likes += post.liked ? 1 : -1;
+    button.classList.toggle('liked', post.liked);
+    countElement.textContent = post.likes;
+    
+    if (post.liked && post.handle !== state.currentUser.username) {
+        // Créer notification pour l'auteur du post
+        createNotification(
+            post.handle,
+            'like',
+            `${state.currentUser.name} liked your post`,
+            { postId: post.id }
+        );
+    }
+    
+    if (post.liked) {
+        button.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            button.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+// Modifier handleRepost pour créer une notification
+function handleRepost(button, post) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+    const countElement = button.querySelector('.post-action-count');
+    post.reposted = !post.reposted;
+    post.reposts += post.reposted ? 1 : -1;
+    button.classList.toggle('retweeted', post.reposted);
+    countElement.textContent = post.reposts;
+    
+    if (post.reposted && post.handle !== state.currentUser.username) {
+        // Créer notification pour l'auteur du post
+        createNotification(
+            post.handle,
+            'repost',
+            `${state.currentUser.name} reposted your post`,
+            { postId: post.id }
+        );
+    }
+    
+    if (post.reposted) {
+        button.style.transform = 'rotate(180deg) scale(1.2)';
+        setTimeout(() => {
+            button.style.transform = 'rotate(0deg) scale(1)';
+        }, 300);
+    }
+}
+
+// Modifier la soumission de commentaire pour créer une notification
+// Dans la fonction createCommentsSection, modifier submitComment:
+const submitComment = () => {
+    const text = input.value.trim();
+    if (text.length === 0) return;
+    
+    const newComment = {
+        id: Date.now(),
+        username: state.currentUser?.name || 'User',
+        handle: state.currentUser?.username || '@user',
+        text: text,
+        timestamp: 'Just now',
+        likes: 0,
+        liked: false
+    };
+    
+    post.commentsList.push(newComment);
+    post.comments++;
+    
+    // Créer notification pour l'auteur du post
+    if (post.handle !== state.currentUser.username) {
+        createNotification(
+            post.handle,
+            'comment',
+            `${state.currentUser.name} commented on your post`,
+            { postId: post.id }
+        );
+    }
+    
+    // ... reste du code existant
+};
+
+// Modifier showUserProfile pour ajouter les boutons
+function showUserProfile(username) {
+    const cleanUsername = username.replace('@', '');
+    const user = state.users.find(u => u.username.replace('@', '') === cleanUsername);
+    
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+    
+    const isOwnProfile = state.currentUser && user.username === state.currentUser.username;
+    const isFollowing = state.following.includes(user.username);
+    
+    // Hide all tab pages
+    tabPages.forEach(page => page.classList.remove('active'));
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Create user profile view
+    const userProfileContainer = document.createElement('div');
+    userProfileContainer.id = 'user-profile-view';
+    userProfileContainer.className = 'feed-container tab-page active';
+    
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.innerHTML = '← Back';
+    backButton.addEventListener('click', () => {
+        history.back();
+    });
+    
+    const userPosts = state.posts.filter(p => p.handle === user.username);
+    const userFollowers = JSON.parse(localStorage.getItem(`followers_${user.username}`) || '[]');
+    const userFollowing = JSON.parse(localStorage.getItem(`following_${user.username}`) || '[]');
+    
+    let actionButtonsHTML = '';
+    if (state.isLoggedIn && !isOwnProfile) {
+        // Check if user allows messages
+        const allowMessages = true; // À remplacer par user.preferences?.allowMessagesFrom
+        
+        actionButtonsHTML = `
+            <div class="profile-action-buttons">
+                ${allowMessages ? `
+                    <button class="message-user-button" onclick="openConversation('${escapeHtml(user.username)}')">
+                        <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                        Message
+                    </button>
+                ` : ''}
+                <button class="follow-user-button ${isFollowing ? 'following' : ''}" data-username="${escapeHtml(user.username)}" onclick="toggleFollow('${escapeHtml(user.username)}')">
+                    ${isFollowing ? '<span>Following</span>' : '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Follow</span>'}
+                </button>
+            </div>
+        `;
+    } else if (isOwnProfile) {
+        actionButtonsHTML = `
+            <button class="edit-profile-button" onclick="switchTab('settings'); history.pushState({ tab: 'settings' }, '', '/settings')">Edit Profile</button>
+        `;
+    }
+    
+    userProfileContainer.innerHTML = `
+        <div class="profile-header">
+            <div class="profile-banner"></div>
+            <div class="profile-info">
+                <div class="profile-picture-large"></div>
+                <div class="profile-details">
+                    <h1 class="profile-name">${escapeHtml(user.name)}</h1>
+                    <p class="profile-username">${escapeHtml(user.username)}</p>
+                    <p class="profile-bio">${escapeHtml(user.bio)}</p>
+                    <div class="profile-stats">
+                        <span><strong>${userPosts.length}</strong> Posts</span>
+                        <span><strong>${userFollowers.length}</strong> Followers</span>
+                        <span><strong>${userFollowing.length}</strong> Following</span>
+                    </div>
+                </div>
+                ${actionButtonsHTML}
+            </div>
+        </div>
+        <div class="profile-content">
+            <div class="profile-posts-list" id="user-profile-posts-list"></div>
+        </div>
+    `;
+    
+    userProfileContainer.insertBefore(backButton, userProfileContainer.firstChild);
+    
+    const existingProfile = document.getElementById('user-profile-view');
+    if (existingProfile) {
+        existingProfile.remove();
+    }
+    
+    mainContent.appendChild(userProfileContainer);
+    
+    // Render user posts
+    const postsList = document.getElementById('user-profile-posts-list');
+    if (userPosts.length === 0) {
+        postsList.innerHTML = `
+            <div class="empty-state">
+                <h2>No posts yet</h2>
+                <p>This user hasn't shared anything</p>
+            </div>
+        `;
+    } else {
+        userPosts.forEach(post => {
+            const postElement = createPostElement(post);
+            postsList.appendChild(postElement);
+        });
+    }
+    
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Modifier renderMessagesTab pour afficher les conversations
+function renderMessagesTab() {
+    const messagesList = document.getElementById('messages-list');
+    if (!messagesList) return;
+    
+    const conversations = Object.keys(state.conversations);
+    
+    if (conversations.length === 0) {
+        messagesList.innerHTML = `
+            <div class="empty-state">
+                <h2>No messages yet</h2>
+                <p>Start a conversation with someone</p>
+            </div>
+        `;
+        return;
+    }
+    
+    messagesList.innerHTML = '';
+    conversations.forEach(username => {
+        const user = state.users.find(u => u.username === username);
+        if (!user) return;
+        
+        const messages = state.conversations[username];
+        const lastMessage = messages[messages.length - 1];
+        const unreadCount = messages.filter(m => m.to === state.currentUser?.username && !m.read).length;
+        
+        const messageItem = document.createElement('div');
+        messageItem.className = `message-item${unreadCount > 0 ? ' unread' : ''}`;
+        messageItem.innerHTML = `
+            <div class="message-avatar"></div>
+            <div class="message-content">
+                <div class="message-header">
+                    <span class="message-name">${escapeHtml(user.name)}</span>
+                    <span class="message-time">${escapeHtml(lastMessage.timestamp)}</span>
+                </div>
+                <div class="message-preview">${escapeHtml(lastMessage.text)}</div>
+            </div>
+            ${unreadCount > 0 ? `<div class="message-unread-badge">${unreadCount}</div>` : ''}
+        `;
+        
+        messageItem.addEventListener('click', () => openConversation(username));
+        messagesList.appendChild(messageItem);
+    });
+}
+
+// Modifier switchTab pour gérer les notifications et messages
+const originalSwitchTab = switchTab;
+function switchTab(tabName) {
+    // Remove any dynamic views
+    const postDetailView = document.getElementById('post-detail-view');
+    const userProfileView = document.getElementById('user-profile-view');
+    const conversationView = document.getElementById('conversation-view');
+    if (postDetailView) postDetailView.remove();
+    if (userProfileView) userProfileView.remove();
+    if (conversationView) conversationView.remove();
+    
+    state.currentPostView = null;
+    
+    tabs.forEach(tab => {
+        if (tab.getAttribute('data-tab') === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    tabPages.forEach(page => {
+        if (page.id === `${tabName}-page`) {
+            page.classList.add('active');
+        } else {
+            page.classList.remove('active');
+        }
+    });
+    state.currentTab = tabName;
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Gestion des nouvelles fonctionnalités
+    if (tabName === 'notifications') {
+        loadNotifications();
+        setTimeout(markAllNotificationsRead, 1000);
+    } else if (tabName === 'messages') {
+        renderMessagesTab();
+    } else if (tabName === 'profile' && state.isLoggedIn) {
+        updateProfileStats();
+    }
+}
+
+// Modifier loginUser pour charger notifications et followers
+function loginUser(user) {
+    state.currentUser = user;
+    state.isLoggedIn = true;
+    
+    document.getElementById('account-name').textContent = user.name;
+    document.getElementById('account-username').textContent = user.username;
+    document.getElementById('profile-name').textContent = user.name;
+    document.getElementById('profile-username-display').textContent = user.username;
+    document.getElementById('profile-bio').textContent = user.bio;
+    
+    document.getElementById('settings-name').value = user.name;
+    document.getElementById('settings-username').value = user.username.replace('@', '');
+    document.getElementById('settings-bio').value = user.bio;
+    document.getElementById('settings-email').value = user.email;
+
+    if (!state.isGuestMode) {
+        localStorage.setItem('chicheUser', JSON.stringify(user));
+    }
+    
+    // Charger followers, following et notifications
+    initializeFollowSystem();
+    loadNotifications();
+    createMessagingFeatures();
+    updateProfileStats();
+
+    closeLoginOverlay();
+}
+
+// Ajouter à initializeApp
+function initializeApp() {
+    setupEventListeners();
+    setupTabNavigation();
+    setupComposer();
+    setupCustomTagSelectors();
+    setupAuth();
+    setupSettings();
+    setupProfileTabs();
+    setupSearchFilters();
+    
+    // Nouveaux ajouts
+    createMessagingFeatures();
+}
