@@ -69,6 +69,7 @@ const tabPages = document.querySelectorAll('.tab-page');
 const openSettingsButton = document.getElementById('open-settings-button');
 const saveSettingsButton = document.getElementById('save-settings');
 const logoutButton = document.getElementById('logout-button');
+const editProfileButton = document.getElementById('edit-profile-button');
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
@@ -173,6 +174,12 @@ function setupEventListeners() {
         }
         closeLoginOverlay();
     });
+    editProfileButton.addEventListener('click', () => {
+        switchTab('settings');
+        if (window.location.protocol !== 'file:') {
+            history.pushState({ tab: 'settings'}, '', '/settings')
+        }});
+    
     logoutButton.addEventListener('click', handleLogout);
 }
 
