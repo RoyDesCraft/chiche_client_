@@ -803,6 +803,140 @@ body {
     color: var(--success-color);
 }
 
+/* COMMENTS */
+.comments-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.comments-section.open {
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.comments-list {
+    margin-bottom: 16px;
+}
+
+.no-comments {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    padding: 20px;
+    font-style: italic;
+}
+
+.comment-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    animation: slideIn 0.3s ease;
+}
+
+.comment-item:last-child {
+    margin-bottom: 0;
+}
+
+.comment-profile-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--white);
+    flex-shrink: 0;
+}
+
+.comment-content {
+    flex: 1;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.comment-username {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+}
+
+.comment-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.comment-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.comment-composer {
+    margin-top: 12px;
+}
+
+.comment-input-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.comment-composer-pic {
+    width: 32px;
+    height: 32px;
+}
+
+.comment-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 0;
+    color: var(--white);
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.comment-input:focus {
+    border-bottom-color: var(--white);
+}
+
+.comment-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.comment-send-btn {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.comment-send-btn:hover {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.comment-send-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--white);
+}
+
 /* SEARCH PAGE */
 .search-header {
     margin-bottom: 24px;
@@ -852,7 +986,7 @@ body {
 .profile-banner {
     width: 100%;
     height: 200px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--white);
     border-radius: 16px;
     margin-bottom: -60px;
 }
@@ -866,7 +1000,7 @@ body {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--white);
     border: 5px solid var(--grad-background-dark);
     margin-bottom: 16px;
 }
@@ -1506,4 +1640,59 @@ body {
 
 .toast.error {
     border-left: 4px solid var(--danger-color);
+}
+
+/* FEATHER EXPLOSION EFFECT */
+.feather {
+    position: fixed;
+    width: 8px;
+    height: 16px;
+    border-radius: 50% 50% 0 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: featherFly 1s ease-out forwards;
+}
+
+@keyframes featherFly {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) rotate(var(--rotation)) scale(0);
+        opacity: 0;
+    }
+}
+
+.feather::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 8px;
+    background: inherit;
+    border-radius: 50%;
+    top: 30%;
+    left: -2px;
+    opacity: 0.7;
+}
+
+.feather::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 8px;
+    background: inherit;
+    border-radius: 50%;
+    top: 30%;
+    right: -2px;
+    opacity: 0.7;
+}
+
+/* TRAIL */
+.circle-trail {
+    width: 4px;
+    height: 4px;
+    background: var(--white);
 }

@@ -298,6 +298,8 @@ function createPostElement(post) {
     return postDiv;
 }
 
+
+
 // ==================== POST ACTIONS ====================
 document.addEventListener('click', (e) => {
     const actionButton = e.target.closest('.post-action');
@@ -365,7 +367,126 @@ function handleComment(post) {
         openLoginOverlay();
         return;
     }
-    showToast('Comments coming soon!', 'success');
+    
+    const postContainer = document.querySelector(`[data-post-id="${post.id}"]`);
+    let commentsSection = postContainer.querySelector('.comments-section');
+    
+    if (commentsSection) {
+        // Toggle comments section
+        if (commentsSection.style.display === 'none') {
+            commentsSection.style.display = 'block';
+            setTimeout(() => commentsSection.classList.add('open'), 10);
+        } else {
+            commentsSection.classList.remove('open');
+            setTimeout(() => commentsSection.style.display = 'none', 300);
+        }
+    } else {
+        // Create comments section
+        commentsSection = createCommentsSection(post);
+        postContainer.querySelector('.post-actions').insertAdjacentElement('afterend', commentsSection);
+        setTimeout(() => commentsSection.classList.add('open'), 10);
+    }
+}
+
+function createCommentsSection(post) {
+    const section = document.createElement('div');
+    section.className = 'comments-section';
+    
+    if (!post.commentsList) {
+        post.commentsList = [];
+    }
+    
+    const commentsHTML = post.commentsList.map(comment => `
+        <div class="comment-item">
+            <div class="comment-profile-pic"></div>
+            <div class="comment-content">
+                <div class="comment-header">
+                    <span class="comment-username">${escapeHtml(comment.username)}</span>
+                    <span class="comment-time">${escapeHtml(comment.timestamp)}</span>
+                </div>
+                <p class="comment-text">${escapeHtml(comment.text)}</p>
+            </div>
+        </div>
+    `).join('');
+    
+    section.innerHTML = `
+        <div class="comments-list">${commentsHTML || '<p class="no-comments">No comments yet. Be the first!</p>'}</div>
+        <div class="comment-composer">
+            <div class="comment-input-wrapper">
+                <div class="comment-composer-pic profile-picture"></div>
+                <input type="text" class="comment-input" placeholder="Write a comment..." maxlength="280">
+                <button class="comment-send-btn">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const input = section.querySelector('.comment-input');
+    const sendBtn = section.querySelector('.comment-send-btn');
+    
+    const submitComment = () => {
+        const text = input.value.trim();
+        if (text.length === 0) return;
+        
+        const newComment = {
+            id: Date.now(),
+            username: state.currentUser?.name || 'User',
+            text: text,
+            timestamp: 'Just now'
+        };
+        
+        post.commentsList.push(newComment);
+        post.comments++;
+        
+        // Update comment count in UI
+        const postContainer = document.querySelector(`[data-post-id="${post.id}"]`);
+        const commentButton = postContainer.querySelector('[data-action="comment"]');
+        const countElement = commentButton.querySelector('.post-action-count');
+        countElement.textContent = post.comments;
+        
+        // Add comment to list
+        const commentsList = section.querySelector('.comments-list');
+        const noCommentsMsg = commentsList.querySelector('.no-comments');
+        if (noCommentsMsg) noCommentsMsg.remove();
+        
+        const commentElement = document.createElement('div');
+        commentElement.className = 'comment-item';
+        commentElement.innerHTML = `
+            <div class="comment-profile-pic"></div>
+            <div class="comment-content">
+                <div class="comment-header">
+                    <span class="comment-username">${escapeHtml(newComment.username)}</span>
+                    <span class="comment-time">${escapeHtml(newComment.timestamp)}</span>
+                </div>
+                <p class="comment-text">${escapeHtml(newComment.text)}</p>
+            </div>
+        `;
+        
+        commentsList.appendChild(commentElement);
+        
+        // Animate new comment
+        commentElement.style.opacity = '0';
+        commentElement.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            commentElement.style.transition = 'all 0.3s ease';
+            commentElement.style.opacity = '1';
+            commentElement.style.transform = 'translateY(0)';
+        }, 10);
+        
+        input.value = '';
+        showToast('Comment added!', 'success');
+    };
+    
+    sendBtn.addEventListener('click', submitComment);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitComment();
+        }
+    });
+    
+    return section;
 }
 
 function handleShare(post) {
@@ -861,3 +982,46 @@ function setupCustomTagSelectors() {
         });
     };
 }
+
+// ==================== FEATHER EXPLOSION EFFECT ====================
+function createFeatherExplosion(x, y) {
+    const featherCount = 8;
+    const colors = ['#004cffff', '#ffdd00ff', '#00ff51ff', '#ff00f2ff'];
+    
+    for (let i = 0; i < featherCount; i++) {
+        const feather = document.createElement('div');
+        feather.className = 'feather';
+        feather.style.left = x + 'px';
+        feather.style.top = y + 'px';
+        
+        // Random color
+        feather.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Random angle for explosion
+        const angle = (Math.PI * 2 * i) / featherCount;
+        const velocity = 100 + Math.random() * 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        // Random rotation
+        const rotation = Math.random() * 720 - 360;
+        
+        feather.style.setProperty('--tx', tx + 'px');
+        feather.style.setProperty('--ty', ty + 'px');
+        feather.style.setProperty('--rotation', rotation + 'deg');
+        
+        document.body.appendChild(feather);
+        
+        // Remove after animation
+        setTimeout(() => {
+            feather.remove();
+        }, 1000);
+    }
+}
+
+// Add click listener to body
+document.body.addEventListener('click', (e) => {
+    createFeatherExplosion(e.clientX, e.clientY);
+});
+
+/* MOUSE TRAIL */
