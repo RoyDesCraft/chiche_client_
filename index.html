@@ -4,102 +4,346 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chiche</title>
-    <link rel="stylesheet" href="/chiche_client_/styles.css">
+    <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml" href="icons/ChicheLogo.svg">
-    <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="main.js" defer></script>
 </head>
-
 <body>
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-        <a href="#">
-            <img class="logo" src="icons/ChicheLogo.svg" alt="Logo">
-        </a>
+        <div class="sidebar-header">
+            <img class="logo" id="logo" src="icons/ChicheLogo.svg"></img>
+            <img class="close-sidebar" id="close-sidebar" viewBox="0 0 24 24" src="icons/SidebarIcon.svg"></img>
+        </div>
 
-        <div class="close-sidebar" id="close-sidebar" style="background-image: url('/chiche_client_/icons/SidebarIcon.svg');"></div>
-
-        <a href="#">
-            <img class="lildots" src="/chiche_client_/icons/DotsIcon.svg" alt="Dots">
-        </a>
-
-        <div class="sidebar-content">
-            <div class="account-section">
-                <img class="profile-picture" src="WhiteSquare.png" alt="Profile Picture">
+        <div class="account-section">
+            <div class="account-header">
+                <div class="profile-picture" id="sidebar-profile-pic"></div>
                 <div class="account-info">
-                    <h2 class="account-name">Esu</h2>
-                    <h2 class="account-username">@esu_xyz</h2>
-                    <p>
-                        <a class="account-setting" href="#" id="open-login-overlay-button">Account settings</a>
-                    </p>
+                    <h2 class="account-name" id="account-name">Guest</h2>
+                    <span class="account-username" id="account-username">@guest</span>
                 </div>
             </div>
+            <div class="account-settings">
+                <span class="account-setting" id="open-settings-button">Account settings</span>
+            </div>
+        </div>
 
-            <div class="divider"></div>
-
-            <div class="tab-content" id="tab-content">
-                <div class="tab">
-                    <img class="tab-icon" src="/chiche_client_/icons/HomeIcon.svg" alt="Home">
-                    <h2 class="tab-text">Home</h2>
+        <div class="sidebar-content">
+            <div class="tab-content">
+                <div class="tab" data-tab="home">
+                    <svg class="tab-icon" viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span class="tab-text">Home</span>
                 </div>
-                <div class="tab">
-                    <img class="tab-icon" src="/chiche_client_/icons/SearchIcon.svg" alt="Search">
-                    <h2 class="tab-text">Search</h2>
+                <div class="tab" data-tab="search">
+                    <svg class="tab-icon" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <span class="tab-text">Search</span>
                 </div>
-                <div class="tab">
-                    <img class="tab-icon" src="/chiche_client_/icons/NotifIcon.svg" alt="Notifications">
-                    <h2 class="tab-text">Notifications</h2>
+                <div class="tab" data-tab="notifications">
+                    <svg class="tab-icon" viewBox="0 0 24 24">
+                        <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                    </svg>
+                    <span class="tab-text">Notifications</span>
                 </div>
-                <div class="tab">
-                    <img class="tab-icon" src="/chiche_client_/icons/MessagesIcon.svg" alt="Messages">
-                    <h2 class="tab-text">Messages</h2>
+                <div class="tab" data-tab="messages">
+                    <svg class="tab-icon" viewBox="0 0 24 24">
+                        <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                    </svg>
+                    <span class="tab-text">Messages</span>
                 </div>
-                <div class="tab">
-                    <img class="tab-icon profile-picture" src="WhiteSquare.png" alt="Profile">
-                    <h2 class="tab-text">Profile</h2>
+                <div class="tab" data-tab="profile">
+                    <svg class="tab-icon" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    <span class="tab-text">Profile</span>
                 </div>
-                <div style="height: 20vh; background-color: transparent;"></div>
             </div>
         </div>
 
         <div class="post-button" id="post-button">
-            <h2 class="post-button-text">Post</h2>
+            <span class="post-button-text">Post</span>
         </div>
     </div>
+
+    <!-- MAIN CONTENT -->
     <div class="main-content" id="main-content">
-    </div>
-    <div class="login-overlay login-overlay-closed" id="login-overlay">
-        <div class="login-box">
+        <!-- HOME TAB -->
+        <div class="feed-container tab-page active" id="home-page">
+            <!-- Post Composer -->
+            <div class="post-composer">
+                <div class="composer-header">
+                    <div class="profile-picture composer-profile-pic"></div>
+                    <textarea class="composer-textarea" placeholder="What's happening?" maxlength="280"></textarea>
+                </div>
+                
+                <!-- Tags Selection -->
+                <div class="composer-tags">
+                    <div class="tag-selector">
+                        <label>📍 Location</label>
+                        <select class="tag-select" id="location-tag">
+                            <option value="">No location</option>
+                            <option value="paris">Paris</option>
+                            <option value="london">London</option>
+                            <option value="newyork">New York</option>
+                            <option value="tokyo">Tokyo</option>
+                            <option value="berlin">Berlin</option>
+                        </select>
+                    </div>
+                    <div class="tag-selector">
+                        <label>💬 Topic</label>
+                        <select class="tag-select" id="topic-tag">
+                            <option value="">No topic</option>
+                            <option value="tech">Technology</option>
+                            <option value="sports">Sports</option>
+                            <option value="music">Music</option>
+                            <option value="food">Food</option>
+                            <option value="travel">Travel</option>
+                            <option value="news">News</option>
+                        </select>
+                    </div>
+                    <div class="tag-selector">
+                        <label>🏷️ Type</label>
+                        <select class="tag-select" id="type-tag">
+                            <option value="">No type</option>
+                            <option value="question">Question</option>
+                            <option value="announcement">Announcement</option>
+                            <option value="poll">Poll</option>
+                            <option value="discussion">Discussion</option>
+                        </select>
+                    </div>
+                </div>
 
-            <img class="login-cross-button" id="close-login-overlay-button" src="icons/Cross.svg" alt="Close">
-            <img class="login-logo" id="login-logo" src="icons/ChicheLogo.svg" alt="Chiche Logo">
-            <h2 class="login-title">Welcome to Chiche</h2>
-            <p class="login-subtitle">Sign up and start voting !</p>
-
-            <div id="customGoogleButton" class="google-login-button">
-                <img src="https://lh3.googleusercontent.com/a/ACg8ocJ6Ej7Qw_0LbN-H3P25nwtaOk3UmAmqG5HiWZeZEWIIS1TL1sw3=s96-c" alt="Google logo" class="google-logo">
-                <span>Se connecter avec Google</span>
+                <div class="composer-actions">
+                    <div class="composer-buttons">
+                        <button class="composer-button" title="Add image">
+                            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                        </button>
+                        <button class="composer-button" title="Add emoji">
+                            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                        </button>
+                    </div>
+                    <button class="composer-post-button" disabled>Post</button>
+                </div>
             </div>
-            <div id="g_id_onload"
-                data-client_id="375435848419-ud1ao7ot13k81uh48gfvk3rbjo47hdce.apps.googleusercontent.com"
-                data-login_uri="https://chiche-server.onrender.com/auth/google"
-                data-auto_prompt="false">
+
+            <!-- Sample Posts -->
+            <div class="posts-feed" id="posts-feed"></div>
+        </div>
+
+        <!-- SEARCH TAB -->
+        <div class="feed-container tab-page" id="search-page">
+            <div class="search-header">
+                <h1>Search</h1>
+                <div class="search-bar">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <input type="text" placeholder="Search Chiche..." id="search-input">
+                </div>
             </div>
+            <div class="search-results" id="search-results">
+                <div class="empty-state">
+                    <h2>Search for posts, users, or topics</h2>
+                    <p>Find what's happening now</p>
+                </div>
+            </div>
+        </div>
 
+        <!-- NOTIFICATIONS TAB -->
+        <div class="feed-container tab-page" id="notifications-page">
+            <h1 class="page-title">Notifications</h1>
+            <div class="notifications-list" id="notifications-list">
+                <div class="empty-state">
+                    <h2>No notifications yet</h2>
+                    <p>When someone likes or comments on your posts, you'll see it here</p>
+                </div>
+            </div>
+        </div>
 
-            <button class="login-button" id="login-button">
-                <h1 class="login-button-text">Sign up for free</h1>
-            </button>
+        <!-- MESSAGES TAB -->
+        <div class="feed-container tab-page" id="messages-page">
+            <h1 class="page-title">Messages</h1>
+            <div class="messages-list" id="messages-list">
+                <div class="empty-state">
+                    <h2>No messages yet</h2>
+                    <p>Start a conversation with someone</p>
+                </div>
+            </div>
+        </div>
 
-            <h1 class="login-terms-text">
-                By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-            </h1>
+        <!-- PROFILE TAB -->
+        <div class="feed-container tab-page" id="profile-page">
+            <div class="profile-header">
+                <div class="profile-banner"></div>
+                <div class="profile-info">
+                    <div class="profile-picture-large" id="profile-picture-large"></div>
+                    <div class="profile-details">
+                        <h1 class="profile-name" id="profile-name">Guest User</h1>
+                        <p class="profile-username" id="profile-username-display">@guest</p>
+                        <p class="profile-bio" id="profile-bio">Welcome to Chiche!</p>
+                        <div class="profile-stats">
+                            <span><strong>0</strong> Posts</span>
+                            <span><strong>0</strong> Followers</span>
+                            <span><strong>0</strong> Following</span>
+                        </div>
+                    </div>
+                    <button class="edit-profile-button" id="edit-profile-button">Edit Profile</button>
+                </div>
+            </div>
+            <div class="profile-tabs">
+                <button class="profile-tab active" data-profile-tab="posts">Posts</button>
+                <button class="profile-tab" data-profile-tab="likes">Likes</button>
+                <button class="profile-tab" data-profile-tab="media">Media</button>
+            </div>
+            <div class="profile-content">
+                <div class="profile-posts-list" id="profile-posts-list">
+                    <div class="empty-state">
+                        <h2>No posts yet</h2>
+                        <p>Start sharing your thoughts!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <button class="already-have-account-button">
-                <h1 class="already-have-account-button-text">Already have an account? Log in</h1>
-            </button>
+        <!-- SETTINGS PAGE -->
+        <div class="feed-container tab-page" id="settings-page">
+            <h1 class="page-title">Settings</h1>
+            <div class="settings-container">
+                <div class="settings-section">
+                    <h2>Account Information</h2>
+                    <div class="setting-item">
+                        <label>Display Name</label>
+                        <input type="text" id="settings-name" placeholder="Your name">
+                    </div>
+                    <div class="setting-item">
+                        <label>Username</label>
+                        <input type="text" id="settings-username" placeholder="@username">
+                    </div>
+                    <div class="setting-item">
+                        <label>Bio</label>
+                        <textarea id="settings-bio" placeholder="Tell us about yourself" maxlength="160"></textarea>
+                    </div>
+                    <div class="setting-item">
+                        <label>Email</label>
+                        <input type="email" id="settings-email" placeholder="your@email.com">
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h2>Privacy</h2>
+                    <div class="setting-toggle">
+                        <label>Private Account</label>
+                        <input type="checkbox" id="privacy-private">
+                    </div>
+                    <div class="setting-toggle">
+                        <label>Allow Messages from Anyone</label>
+                        <input type="checkbox" id="privacy-messages" checked>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h2>Notifications</h2>
+                    <div class="setting-toggle">
+                        <label>Email Notifications</label>
+                        <input type="checkbox" id="notif-email" checked>
+                    </div>
+                    <div class="setting-toggle">
+                        <label>Push Notifications</label>
+                        <input type="checkbox" id="notif-push" checked>
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button class="save-settings-button" id="save-settings">Save Changes</button>
+                    <button class="logout-button" id="logout-button">Logout</button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- LOGIN / SIGNUP OVERLAY -->
+    <div class="login-overlay" id="login-overlay">
+        <div class="login-box">
+            <svg class="login-cross-button" id="close-login-overlay-button" viewBox="0 0 24 24" fill="white">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+            
+            <!-- SIGNUP VIEW -->
+            <div class="auth-view" id="signup-view">
+                <div class="login-logo"></div>
+                <h2 class="login-title">Join Chiche Today</h2>
+                <p class="login-subtitle">Sign up and start sharing!</p>
+
+                <div id="g_id_onload"
+                    data-client_id="375435848419-ud1ao7ot13k81uh48gfvk3rbjo47hdce.apps.googleusercontent.com"
+                    data-callback="handleGoogleSignIn"
+                    data-auto_prompt="false">
+                </div>
+
+                <button class="google-login-button" id="google-signup-button">
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Sign up with Google</span>
+                </button>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <div class="auth-form">
+                    <input type="email" id="signup-email" placeholder="Email address" required>
+                    <input type="password" id="signup-password" placeholder="Password (min 6 characters)" required minlength="6">
+                    <input type="text" id="signup-name" placeholder="Display name" required>
+                    <input type="text" id="signup-username" placeholder="Username" required>
+                    <button class="login-button" id="email-signup-button">Create Account</button>
+                </div>
+
+                <p class="login-terms-text">
+                    By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                </p>
+
+                <button class="switch-auth-button" id="show-login">
+                    Already have an account? <strong>Log in</strong>
+                </button>
+            </div>
+
+            <!-- LOGIN VIEW -->
+            <div class="auth-view hidden" id="login-view">
+                <div class="login-logo"></div>
+                <h2 class="login-title">Welcome Back</h2>
+                <p class="login-subtitle">Log in to continue</p>
+
+                <button class="google-login-button" id="google-login-button">
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Log in with Google</span>
+                </button>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <div class="auth-form">
+                    <input type="email" id="login-email" placeholder="Email address" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button class="login-button" id="email-login-button">Log In</button>
+                </div>
+
+                <button class="switch-auth-button" id="show-signup">
+                    Don't have an account? <strong>Sign up</strong>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
 </body>
 </html>

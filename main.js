@@ -1,83 +1,683 @@
-// DOM Elements
+// ==================== STATE MANAGEMENT ====================
+const state = {
+    currentUser: null,
+    currentTab: 'home',
+    posts: [],
+    isLoggedIn: false
+};
+
+// ==================== DOM ELEMENTS ====================
 const sidebar = document.getElementById("sidebar");
-const sidebarContent = document.querySelector('.sidebar-content');
-const postButton = document.getElementById('post-button');
-const tabContent = document.getElementById('tab-content');
-const tabTextElements = document.querySelectorAll('.tab-text');
-const closeSidebarButton = document.querySelector(".close-sidebar");
+const closeSidebarButton = document.getElementById("close-sidebar");
+const logo = document.getElementById("logo");
+const mainContent = document.getElementById("main-content");
 
-// INITIAL STATES
-sidebar.classList.add("sidebar-open");
-tabTextElements.forEach((element) => {
-    element.classList.add("tab-text-sidebar-opened");
-});
-
-// Toggle Sidebar
-closeSidebarButton.addEventListener("click", () => {
-    if (sidebar.classList.contains("sidebar-open")) {
-        // CLOSING
-        sidebar.classList.remove("sidebar-open");
-        sidebar.classList.add("sidebar-closed");
-        sidebarContent.classList.remove("scrollbar-sidebar-opened");
-        sidebarContent.classList.add("scrollbar-sidebar-closed");
-        postButton.classList.remove("post-button-sidebar-opened");
-        postButton.classList.add("post-button-sidebar-closed");
-        tabContent.classList.remove("tab-sidebar-opened");
-        tabContent.classList.add("tab-sidebar-closed");
-        tabTextElements.forEach((element) => {
-            element.classList.remove("tab-text-sidebar-opened");
-            element.classList.add("tab-text-sidebar-closed");
-        });
-    } else {
-        // OPENING
-        sidebar.classList.remove("sidebar-closed");
-        sidebar.classList.add("sidebar-open");
-        sidebarContent.classList.remove("scrollbar-sidebar-closed");
-        sidebarContent.classList.add("scrollbar-sidebar-opened");
-        postButton.classList.remove("post-button-sidebar-closed");
-        postButton.classList.add("post-button-sidebar-opened");
-        tabContent.classList.remove("tab-sidebar-closed");
-        tabContent.classList.add("tab-sidebar-opened");
-        tabTextElements.forEach((element) => {
-            element.classList.remove("tab-text-sidebar-closed");
-            element.classList.add("tab-text-sidebar-opened");
-        });
-    }
-});
-
-// Login Overlay
+// Login/Auth
 const loginOverlay = document.getElementById('login-overlay');
-const openLoginOverlayButton = document.getElementById('open-login-overlay-button');
-const closeLoginOverlayButton = document.getElementById('close-login-overlay-button');
+const closeLoginButton = document.getElementById('close-login-overlay-button');
+const signupView = document.getElementById('signup-view');
+const loginView = document.getElementById('login-view');
+const showLoginButton = document.getElementById('show-login');
+const showSignupButton = document.getElementById('show-signup');
 
-openLoginOverlayButton.addEventListener('click', () => {
-    if (loginOverlay.classList.contains('login-overlay-open')) {
+// Composer
+const composerTextarea = document.querySelector('.composer-textarea');
+const composerPostButton = document.querySelector('.composer-post-button');
+const locationTag = document.getElementById('location-tag');
+const topicTag = document.getElementById('topic-tag');
+const typeTag = document.getElementById('type-tag');
+const postsFeed = document.getElementById('posts-feed');
 
-        loginOverlay.classList.remove('login-overlay-open');
-        loginOverlay.classList.add('login-overlay-closed');
-        history.pushState(null, '', '/');
+// Tabs
+const tabs = document.querySelectorAll('.tab');
+const tabPages = document.querySelectorAll('.tab-page');
+
+// Settings
+const openSettingsButton = document.getElementById('open-settings-button');
+const saveSettingsButton = document.getElementById('save-settings');
+const logoutButton = document.getElementById('logout-button');
+
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    loadSamplePosts();
+    checkAuthStatus();
+});
+
+function initializeApp() {
+    setupEventListeners();
+    setupTabNavigation();
+    setupComposer();
+    setupAuth();
+    setupSettings();
+}
+
+// ==================== EVENT LISTENERS ====================
+function setupEventListeners() {
+    // Sidebar toggle
+    closeSidebarButton.addEventListener("click", toggleSidebar);
+    
+    // Logo click - scroll to top
+    logo.addEventListener('click', () => {
+        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Close login overlay
+    closeLoginButton.addEventListener('click', closeLoginOverlay);
+    loginOverlay.addEventListener('click', (e) => {
+        if (e.target === loginOverlay) closeLoginOverlay();
+    });
+
+    // Settings button
+    openSettingsButton.addEventListener('click', () => {
+        switchTab('settings');
+        closeLoginOverlay();
+    });
+
+    // Logout
+    logoutButton.addEventListener('click', handleLogout);
+}
+
+function toggleSidebar() {
+    sidebar.classList.toggle("sidebar-closed");
+}
+
+// ==================== TAB NAVIGATION ====================
+function setupTabNavigation() {
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+}
+
+function switchTab(tabName) {
+    // Update active tab
+    tabs.forEach(tab => {
+        if (tab.getAttribute('data-tab') === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    // Update active page
+    tabPages.forEach(page => {
+        if (page.id === `${tabName}-page`) {
+            page.classList.add('active');
+        } else {
+            page.classList.remove('active');
+        }
+    });
+
+    state.currentTab = tabName;
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== COMPOSER ====================
+function setupComposer() {
+    // Enable/disable post button
+    composerTextarea.addEventListener('input', () => {
+        const text = composerTextarea.value.trim();
+        composerPostButton.disabled = text.length === 0;
+        
+        // Auto-resize
+        composerTextarea.style.height = 'auto';
+        composerTextarea.style.height = composerTextarea.scrollHeight + 'px';
+    });
+
+    // Post button
+    composerPostButton.addEventListener('click', handleCreatePost);
+
+    // Keyboard shortcut (Enter to post)
+    composerTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!composerPostButton.disabled) {
+                composerPostButton.click();
+            }
+        }
+    });
+}
+
+function handleCreatePost() {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+
+    const text = composerTextarea.value.trim();
+    if (text.length === 0) return;
+
+    const newPost = {
+        id: Date.now(),
+        username: state.currentUser?.name || 'User',
+        handle: state.currentUser?.username || '@user',
+        text: text,
+        timestamp: 'Just now',
+        likes: 0,
+        reposts: 0,
+        comments: 0,
+        liked: false,
+        reposted: false,
+        tags: {
+            location: locationTag.value,
+            topic: topicTag.value,
+            type: typeTag.value
+        }
+    };
+
+    state.posts.unshift(newPost);
+    renderPost(newPost, true);
+
+    // Clear form
+    composerTextarea.value = '';
+    composerTextarea.style.height = 'auto';
+    composerPostButton.disabled = true;
+    locationTag.value = '';
+    topicTag.value = '';
+    typeTag.value = '';
+
+    showToast('Post created successfully!', 'success');
+}
+
+// ==================== POST RENDERING ====================
+function renderPost(post, prepend = false) {
+    const postElement = createPostElement(post);
+    
+    if (prepend) {
+        postsFeed.insertBefore(postElement, postsFeed.firstChild);
+        // Entrance animation
+        postElement.style.opacity = '0';
+        postElement.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            postElement.style.transition = 'all 0.3s ease';
+            postElement.style.opacity = '1';
+            postElement.style.transform = 'translateY(0)';
+        }, 10);
     } else {
+        postsFeed.appendChild(postElement);
+    }
+}
 
-    loginOverlay.style.display = 'flex';
-    history.pushState(null, '', '/login');
+function createPostElement(post) {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post-container';
+    postDiv.setAttribute('data-post-id', post.id);
 
-    loginOverlay.classList.remove('login-overlay-closed');
-    loginOverlay.classList.add('login-overlay-open');
+    // Create tags HTML
+    let tagsHTML = '';
+    if (post.tags) {
+        const tagArray = [];
+        if (post.tags.location) tagArray.push(`<span class="post-tag">📍 ${post.tags.location}</span>`);
+        if (post.tags.topic) tagArray.push(`<span class="post-tag">💬 ${post.tags.topic}</span>`);
+        if (post.tags.type) tagArray.push(`<span class="post-tag">🏷️ ${post.tags.type}</span>`);
+        
+        if (tagArray.length > 0) {
+            tagsHTML = `<div class="post-tags">${tagArray.join('')}</div>`;
+        }
+    }
+
+    postDiv.innerHTML = `
+        <div class="post-header">
+            <div class="post-profile-picture"></div>
+            <div class="post-user-info">
+                <div class="post-user-name">${escapeHtml(post.username)}</div>
+                <div class="post-user-username">${escapeHtml(post.handle)}</div>
+            </div>
+            <span class="post-timestamp">${escapeHtml(post.timestamp)}</span>
+        </div>
+        <div class="post-body">
+            <p class="post-text">${escapeHtml(post.text)}</p>
+            ${tagsHTML}
+        </div>
+        <div class="post-actions">
+            <div class="post-action-group">
+                <button class="post-action ${post.liked ? 'liked' : ''}" data-action="like">
+                    <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span class="post-action-count">${post.likes}</span>
+                </button>
+                <button class="post-action ${post.reposted ? 'retweeted' : ''}" data-action="repost">
+                    <svg viewBox="0 0 24 24"><path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/></svg>
+                    <span class="post-action-count">${post.reposts}</span>
+                </button>
+                <button class="post-action" data-action="comment">
+                    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                    <span class="post-action-count">${post.comments}</span>
+                </button>
+            </div>
+            <button class="post-action" data-action="share">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+            </button>
+        </div>
+    `;
+
+    return postDiv;
+}
+
+// ==================== POST ACTIONS ====================
+document.addEventListener('click', (e) => {
+    const actionButton = e.target.closest('.post-action');
+    if (!actionButton) return;
+
+    const action = actionButton.getAttribute('data-action');
+    const postContainer = actionButton.closest('.post-container');
+    const postId = parseInt(postContainer.getAttribute('data-post-id'));
+    const post = state.posts.find(p => p.id === postId);
+
+    if (!post) return;
+
+    switch (action) {
+        case 'like':
+            handleLike(actionButton, post);
+            break;
+        case 'repost':
+            handleRepost(actionButton, post);
+            break;
+        case 'comment':
+            handleComment(post);
+            break;
+        case 'share':
+            handleShare(post);
+            break;
     }
 });
 
-closeLoginOverlayButton.addEventListener('click', () => {
-    if (loginOverlay.classList.contains('login-overlay-open')) {
-
-        loginOverlay.classList.remove('login-overlay-open');
-        loginOverlay.classList.add('login-overlay-closed');
-        history.pushState(null, '', '/');
-    } else {
-
-    loginOverlay.style.display = 'flex';
-    history.pushState(null, '', '/login');
-
-    loginOverlay.classList.remove('login-overlay-closed');
-    loginOverlay.classList.add('login-overlay-open');
+function handleLike(button, post) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
     }
-});
+
+    const countElement = button.querySelector('.post-action-count');
+    post.liked = !post.liked;
+    post.likes += post.liked ? 1 : -1;
+
+    button.classList.toggle('liked', post.liked);
+    countElement.textContent = post.likes;
+
+    if (post.liked) {
+        button.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            button.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+function handleRepost(button, post) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+
+    const countElement = button.querySelector('.post-action-count');
+    post.reposted = !post.reposted;
+    post.reposts += post.reposted ? 1 : -1;
+
+    button.classList.toggle('retweeted', post.reposted);
+    countElement.textContent = post.reposts;
+
+    if (post.reposted) {
+        button.style.transform = 'rotate(180deg) scale(1.2)';
+        setTimeout(() => {
+            button.style.transform = 'rotate(0deg) scale(1)';
+        }, 300);
+    }
+}
+
+function handleComment(post) {
+    if (!state.isLoggedIn) {
+        openLoginOverlay();
+        return;
+    }
+    showToast('Comments coming soon!', 'success');
+}
+
+function handleShare(post) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Chiche Post',
+            text: post.text,
+            url: window.location.href
+        }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(window.location.href)
+            .then(() => showToast('Link copied to clipboard!', 'success'))
+            .catch(() => showToast('Failed to copy link', 'error'));
+    }
+}
+
+// ==================== AUTHENTICATION ====================
+function setupAuth() {
+    // Switch between login and signup
+    showLoginButton.addEventListener('click', () => {
+        signupView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+    });
+
+    showSignupButton.addEventListener('click', () => {
+        loginView.classList.add('hidden');
+        signupView.classList.remove('hidden');
+    });
+
+    // Email signup
+    document.getElementById('email-signup-button').addEventListener('click', handleEmailSignup);
+    
+    // Email login
+    document.getElementById('email-login-button').addEventListener('click', handleEmailLogin);
+
+    // Google login/signup
+    document.getElementById('google-signup-button').addEventListener('click', initiateGoogleAuth);
+    document.getElementById('google-login-button').addEventListener('click', initiateGoogleAuth);
+}
+
+function handleEmailSignup() {
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const name = document.getElementById('signup-name').value.trim();
+    const username = document.getElementById('signup-username').value.trim();
+
+    if (!email || !password || !name || !username) {
+        showToast('Please fill in all fields', 'error');
+        return;
+    }
+
+    if (password.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+    }
+
+    // Simulate account creation
+    const user = {
+        email,
+        name,
+        username: `@${username}`,
+        bio: 'New to Chiche!'
+    };
+
+    loginUser(user);
+    showToast('Account created successfully!', 'success');
+}
+
+function handleEmailLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!email || !password) {
+        showToast('Please fill in all fields', 'error');
+        return;
+    }
+
+    // Simulate login
+    const user = {
+        email,
+        name: 'Demo User',
+        username: '@demouser',
+        bio: 'Welcome back to Chiche!'
+    };
+
+    loginUser(user);
+    showToast('Logged in successfully!', 'success');
+}
+
+function initiateGoogleAuth() {
+    // This would trigger the actual Google OAuth flow
+    // For demo purposes, we'll simulate a successful login
+    showToast('Google authentication would happen here', 'success');
+    
+    // Simulate Google login after 1 second
+    setTimeout(() => {
+        const user = {
+            email: 'user@gmail.com',
+            name: 'Google User',
+            username: '@googleuser',
+            bio: 'Signed up with Google'
+        };
+        loginUser(user);
+    }, 1000);
+}
+
+// Google Sign-In callback (called by Google's script)
+window.handleGoogleSignIn = function(response) {
+    // Decode the JWT token from Google
+    try {
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        const user = {
+            email: payload.email,
+            name: payload.name,
+            username: `@${payload.email.split('@')[0]}`,
+            bio: 'Signed up with Google',
+            picture: payload.picture
+        };
+        loginUser(user);
+    } catch (error) {
+        showToast('Google sign-in failed', 'error');
+    }
+};
+
+function loginUser(user) {
+    state.currentUser = user;
+    state.isLoggedIn = true;
+    
+    // Update UI
+    document.getElementById('account-name').textContent = user.name;
+    document.getElementById('account-username').textContent = user.username;
+    document.getElementById('profile-name').textContent = user.name;
+    document.getElementById('profile-username-display').textContent = user.username;
+    document.getElementById('profile-bio').textContent = user.bio;
+    
+    // Update settings
+    document.getElementById('settings-name').value = user.name;
+    document.getElementById('settings-username').value = user.username.replace('@', '');
+    document.getElementById('settings-bio').value = user.bio;
+    document.getElementById('settings-email').value = user.email;
+
+    // Save to localStorage
+    localStorage.setItem('chicheUser', JSON.stringify(user));
+
+    closeLoginOverlay();
+}
+
+function handleLogout() {
+    state.currentUser = null;
+    state.isLoggedIn = false;
+    
+    // Clear UI
+    document.getElementById('account-name').textContent = 'Guest';
+    document.getElementById('account-username').textContent = '@guest';
+    
+    // Clear localStorage
+    localStorage.removeItem('chicheUser');
+    
+    showToast('Logged out successfully', 'success');
+    switchTab('home');
+}
+
+function checkAuthStatus() {
+    const savedUser = localStorage.getItem('chicheUser');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            loginUser(user);
+        } catch (error) {
+            console.error('Failed to restore user session');
+        }
+    }
+}
+
+function openLoginOverlay() {
+    loginOverlay.classList.add('login-overlay-open');
+    signupView.classList.remove('hidden');
+    loginView.classList.add('hidden');
+}
+
+function closeLoginOverlay() {
+    loginOverlay.classList.remove('login-overlay-open');
+}
+
+// ==================== SETTINGS ====================
+function setupSettings() {
+    saveSettingsButton.addEventListener('click', handleSaveSettings);
+}
+
+function handleSaveSettings() {
+    if (!state.isLoggedIn) {
+        showToast('Please log in first', 'error');
+        return;
+    }
+
+    const name = document.getElementById('settings-name').value.trim();
+    const username = document.getElementById('settings-username').value.trim();
+    const bio = document.getElementById('settings-bio').value.trim();
+    const email = document.getElementById('settings-email').value.trim();
+
+    if (!name || !username || !email) {
+        showToast('Please fill in required fields', 'error');
+        return;
+    }
+
+    // Update user
+    state.currentUser.name = name;
+    state.currentUser.username = `@${username}`;
+    state.currentUser.bio = bio;
+    state.currentUser.email = email;
+
+    // Update UI
+    document.getElementById('account-name').textContent = name;
+    document.getElementById('account-username').textContent = `@${username}`;
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('profile-username-display').textContent = `@${username}`;
+    document.getElementById('profile-bio').textContent = bio;
+
+    // Save to localStorage
+    localStorage.setItem('chicheUser', JSON.stringify(state.currentUser));
+
+    showToast('Settings saved successfully!', 'success');
+}
+
+// ==================== SEARCH ====================
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+
+if (searchInput) {
+    searchInput.addEventListener('input', handleSearch);
+}
+
+function handleSearch(e) {
+    const query = e.target.value.trim().toLowerCase();
+    
+    if (query.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-state">
+                <h2>Search for posts, users, or topics</h2>
+                <p>Find what's happening now</p>
+            </div>
+        `;
+        return;
+    }
+
+    const results = state.posts.filter(post => 
+        post.text.toLowerCase().includes(query) ||
+        post.username.toLowerCase().includes(query) ||
+        post.handle.toLowerCase().includes(query)
+    );
+
+    if (results.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-state">
+                <h2>No results found</h2>
+                <p>Try searching for something else</p>
+            </div>
+        `;
+        return;
+    }
+
+    searchResults.innerHTML = '';
+    results.forEach(post => {
+        const postElement = createPostElement(post);
+        searchResults.appendChild(postElement);
+    });
+}
+
+// ==================== SAMPLE DATA ====================
+function loadSamplePosts() {
+    const samplePosts = [
+        {
+            id: 1,
+            username: 'Sarah Chen',
+            handle: '@sarahchen',
+            text: 'Just discovered this amazing platform! The design is so clean and intuitive. Can\'t wait to see where this goes! 🚀',
+            timestamp: '2h ago',
+            likes: 128,
+            reposts: 34,
+            comments: 19,
+            liked: true,
+            reposted: false,
+            tags: { location: 'paris', topic: 'tech', type: 'discussion' }
+        },
+        {
+            id: 2,
+            username: 'Alex Rivera',
+            handle: '@alexr',
+            text: 'Quick question for the community: What\'s your favorite feature so far? The sidebar animation is absolutely gorgeous! 👌',
+            timestamp: '5h ago',
+            likes: 89,
+            reposts: 21,
+            comments: 45,
+            liked: false,
+            reposted: true,
+            tags: { topic: 'tech', type: 'question' }
+        },
+        {
+            id: 3,
+            username: 'Maya Patel',
+            handle: '@mayapatel',
+            text: 'The attention to detail here is incredible. From the smooth animations to the thoughtful color palette - everything just works. Props to the team! 💯',
+            timestamp: '12h ago',
+            likes: 203,
+            reposts: 56,
+            comments: 32,
+            liked: false,
+            reposted: false,
+            tags: { location: 'london', topic: 'tech', type: 'announcement' }
+        },
+        {
+            id: 4,
+            username: 'Jordan Kim',
+            handle: '@jordank',
+            text: 'Anyone else spending way too much time customizing their profile? This platform makes it so fun! 😄',
+            timestamp: '1d ago',
+            likes: 67,
+            reposts: 12,
+            comments: 28,
+            liked: false,
+            reposted: false,
+            tags: { type: 'discussion' }
+        }
+    ];
+
+    state.posts = samplePosts;
+    samplePosts.forEach(post => renderPost(post));
+}
+
+// ==================== UTILITIES ====================
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
